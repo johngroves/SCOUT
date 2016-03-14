@@ -6,13 +6,13 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_LSM303_U.h>
  
-/* Assign a unique ID to this sensor at the same time */
+// Assign a unique ID to compass / accelerometer
 Adafruit_LSM303_Mag_Unified mag = Adafruit_LSM303_Mag_Unified(12345);
 
 // Pass data to USB serial via digital 3,2
 SoftwareSerial mySerial(3, 2);
 
-// Assign names to analog 0-3 for relay
+// Assign names to analog 0-3 for relay control
 int POS1 = A0;
 int NEG1 = A1;
 int POS2 = A2;
@@ -21,14 +21,12 @@ int delayValue = 5000;
 
 Adafruit_GPS GPS(&mySerial);
 
-
-// Set GPSECHO to 'false' to turn off echoing the GPS data to the Serial console
-// Set to 'true' if you want to debug and listen to the raw GPS sentences. 
+// Listen to the raw GPS sentences. 
 #define GPSECHO  true
 
-// this keeps track of whether we're using the interrupt
-// off by default!
+// Using interrupt between statements
 boolean usingInterrupt = false;
+
 void useInterrupt(boolean); // Func prototype keeps Arduino 0023 happy
 
 void setup()  
@@ -43,7 +41,6 @@ void setup()
   }
   
   // connect at 115200 baud to read GPS quickly
-  // also spit it out
   Serial.begin(115200);
   Serial.println("GPS Initializing");
 
@@ -61,6 +58,7 @@ void setup()
 
   Serial.println("Initialized With High.");
 
+  // Turn Clockwise
   Serial.println("Turning Clockwise");
   digitalWrite(POS1, LOW);
   digitalWrite(NEG1, HIGH);
@@ -69,6 +67,7 @@ void setup()
 
   delay(delayValue);
 
+  // Turn Off Power to Steering Motor
   Serial.println("Turning OFF");
   digitalWrite(POS1, HIGH);
   digitalWrite(NEG1, HIGH);
@@ -77,6 +76,7 @@ void setup()
 
   delay(delayValue);
 
+  // Turn Counter Clockwise
   Serial.println("Turning Counter Clockwise");
   digitalWrite(POS1, HIGH);
   digitalWrite(NEG1, LOW);
@@ -85,6 +85,7 @@ void setup()
 
   delay(delayValue);
 
+  // Turn Off Power to Steering Motor
   Serial.println("Turning OFF");
   digitalWrite(POS1, HIGH);
   digitalWrite(NEG1, HIGH);
@@ -93,31 +94,30 @@ void setup()
 
   delay(delayValue);
 
-  // 9600 NMEA is the default baud rate for Adafruit MTK GPS's- some use 4800
+  // 9600 NMEA is the default baud rate for Adafruit MTK GPS's
   GPS.begin(9600);
   
-  // uncomment this line to turn on RMC (recommended minimum) and GGA (fix data) including altitude
+  // Read RMC (recommended minimum) and GGA (fix data) including altitude
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
   
   // Set the update rate
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);   // 1 Hz update rate
   
-  // Request updates on antenna status, comment out to keep quiet
+  // Request updates on antenna status
   GPS.sendCommand(PGCMD_ANTENNA);
 
   // 1 ms interrupt
   useInterrupt(true);
 
   delay(1000);
-  // Ask for firmware version
-  //mySerial.println(PMTK_Q_RELEASE);
+  
 }
 
 
 // Interrupt is called once a millisecond, looks for any new GPS data, and stores it
 SIGNAL(TIMER0_COMPA_vect) {
   char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
+
 #ifdef UDR0
   if (GPSECHO)
     if (c) UDR0 = c;  
@@ -126,9 +126,7 @@ SIGNAL(TIMER0_COMPA_vect) {
 }
 
 void useInterrupt(boolean v) {
-  if (v) {
-    // Timer0 is already used for millis() - we'll just interrupt somewhere
-    // in the middle and call the "Compare A" function above
+  if (v) {  
     OCR0A = 0xAF;
     TIMSK0 |= _BV(OCIE0A);
     usingInterrupt = true;
@@ -155,7 +153,7 @@ void loop()
   }
 
   if (! usingInterrupt) {
-    // read data from the GPS in the 'main loop'
+    // read data from the GPS 
     char c = GPS.read();
       
   }
