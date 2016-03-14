@@ -2,6 +2,12 @@
 
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
+#include <Wire.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_LSM303_U.h>
+ 
+/* Assign a unique ID to this sensor at the same time */
+Adafruit_LSM303_Mag_Unified mag = Adafruit_LSM303_Mag_Unified(12345);
 
 // Pass data to USB serial via digital 3,2
 SoftwareSerial mySerial(3, 2);
@@ -27,7 +33,15 @@ void useInterrupt(boolean); // Func prototype keeps Arduino 0023 happy
 
 void setup()  
 {
-    
+
+  // Initialise compass
+  if(!mag.begin())
+  {
+    // Verify compass / accel configured 
+    Serial.println("No Accelerometer Detected");
+    while(1);
+  }
+  
   // connect at 115200 baud to read GPS quickly
   // also spit it out
   Serial.begin(115200);
@@ -128,7 +142,18 @@ void useInterrupt(boolean v) {
 uint32_t timer = millis();
 void loop()                     
 {
+  sensors_event_t event; 
+  mag.getEvent(&event);
+  float Pi = 3.14159;
+  // Calculate the angle of the vector y,x
+  float heading = (atan2(event.magnetic.y,event.magnetic.x) * 180) / Pi;
   
+  // Normalize to 0-360
+  if (heading < 0)
+  {
+    heading = 360 + heading;
+  }
+
   if (! usingInterrupt) {
     // read data from the GPS in the 'main loop'
     char c = GPS.read();
@@ -160,6 +185,10 @@ void loop()
       Serial.print("Angle: "); Serial.println(GPS.angle);
       Serial.print("Altitude: "); Serial.println(GPS.altitude);
       Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
+      Serial.print("Compass Heading: ");
+      Serial.println(heading);
+  
     }
   }
+
 }
