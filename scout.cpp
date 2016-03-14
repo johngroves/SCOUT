@@ -107,8 +107,7 @@ SIGNAL(TIMER0_COMPA_vect) {
 #ifdef UDR0
   if (GPSECHO)
     if (c) UDR0 = c;  
-    // writing direct to UDR0 is much much faster than Serial.print 
-    // but only one character can be written at a time. 
+    // writing direct to UDR0 
 #endif
 }
 
@@ -127,33 +126,26 @@ void useInterrupt(boolean v) {
 }
 
 uint32_t timer = millis();
-void loop()                     // run over and over again
+void loop()                     
 {
-  // in case you are not using the interrupt above, you'll
-
+  
   if (! usingInterrupt) {
     // read data from the GPS in the 'main loop'
     char c = GPS.read();
-    // if you want to debug, this is a good time to do it!
-   
       
   }
   
-  // if a sentence is received, we can check the checksum, parse it...
+  // Determine if new statement received, if so, check the checksum, parse
   if (GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences! 
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
-    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-      return;  // we can fail to parse a sentence in which case we should just wait for another
+    
+    if (!GPS.parse(GPS.lastNMEA()))   // this sets the newNMEAreceived() flag to false
+      return;  // if miss statement, wait for
   }
 
-  // if millis() or timer wraps around, we'll just reset it
+  // if millis() or timer wraps around, reset it
   if (timer > millis())  timer = millis();
 
-  // approximately every 2 seconds or so, print out the current stats
+  //  Every 2 seconds, print out the current stats
   if (millis() - timer > 2000) { 
     timer = millis(); // reset the timer
     
