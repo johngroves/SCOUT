@@ -160,9 +160,12 @@ void setup()
 
 void loop()
 {
-    Input = degsBetween(getMagneticHeading(),getMotorAngle()); // Get Motor Angle + Setpoint
+    Input = degsBetween(getMagneticHeading(),getMotorAngle()); // Get Motor Angle
     Serial.print("Input: ");
     Serial.println(Input);
+    /*************************************************
+    * TODO: Update Setpoint w/ magnetic bearing      *
+    **************************************************/
     myPID.Compute();
     Serial.print("Heading - Motor Angle ");
     Serial.println(getMagneticHeading() - getMotorAngle());
