@@ -160,14 +160,14 @@ void setup()
 
 void loop()
 {
-    Input = degsBetween(getMagneticHeading(),getMotorAngle()); // Get Motor Angle
+    Input = degsBetween(getMagneticHeading(),getMotorAngle()); // Get Motor Angle + Setpoint
     Serial.print("Input: ");
     Serial.println(Input);
     myPID.Compute();
     Serial.print("Heading - Motor Angle ");
     Serial.println(getMagneticHeading() - getMotorAngle());
     Serial.print("Direction to turn: ");
-    bool clockwise = directionToTurn(getMagneticHeading(),getMotorAngle());
+    bool clockwise = directionToTurn(getMagneticHeading()+Setpoint,getMotorAngle());
     Serial.println(clockwise);
 
     /************************************************
