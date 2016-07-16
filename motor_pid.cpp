@@ -9,6 +9,8 @@
 #include <PID_v1.h>
 
 #define TCAADDR 0x70
+#define GPSECHO  false
+
 
 // Assign GPS to Serial 3
 Adafruit_GPS GPS(&Serial3);
@@ -128,6 +130,7 @@ float getBearing(float lat1, float lon1, float lat2, float lon2){ // Calculates 
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
+double Setpoint2, Input2, Output2;
 
 //Specify the links and initial tuning parameters
 PID motorPID(&Input, &Output, &Setpoint ,.1,1,1, DIRECT);
@@ -226,7 +229,6 @@ void useInterrupt(boolean v) {
   }
 
 }
-uint32_t timer = millis();
 
 void loop()
 {
@@ -249,7 +251,7 @@ void loop()
         /*************************************************
         * TODO: Update Setpoint w/ magnetic bearing      *
         **************************************************/
-        navPID.compute();
+        navPID.Compute();
         Setpoint = Output2;
         motorPID.Compute();
         Serial.print("Heading - Motor Angle ");
