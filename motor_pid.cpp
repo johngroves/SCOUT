@@ -10,10 +10,23 @@
 
 #define TCAADDR 0x70
 
+// Assign GPS to Serial 3
+Adafruit_GPS GPS(&Serial3);
+HardwareSerial mySerial = Serial3;
+
+boolean usingInterrupt = false;
+void useInterrupt(boolean); // Func prototype keeps Arduino 0023 happy
+
 // When false, relays are not activated
 bool annoyRachel = true;
 
 float diff;
+// Lat long values
+float lat2 = 37.528618;
+float lon2 = -122.257563;
+float lat1 = GPS.lat;
+float lon1 = GPS.lon;
+
 
 // Relay Pins
 int POS1 = 46;
@@ -93,26 +106,53 @@ bool directionToTurn(float heading, float motor){
 
 }
 
+float getBearing(float lat1, float lon1, float lat2, float lon2){ // Calculates bearing from location 1 to waypoint 1
+
+  float heading;
+  lon1 = radians(lon1);
+  lon2 = radians(lon2);
+
+  heading = atan2(sin(lon2-lon1)*cos(lat2),cos(lat1)*sin(lat2)-sin(lat1)*cos(lat2)*cos(lon2-lon1)),2*3.1415926535;
+  heading = heading*180/3.1415926535;  // convert from radians to degrees
+
+  int head =heading;
+
+    if(head<0){
+      heading+=360;   //if the heading is negative then add 360 to make it positive
+    }
+
+    return heading;
+
+}
 
 
 //Define Variables we'll be connecting to
 double Setpoint, Input, Output;
 
 //Specify the links and initial tuning parameters
-PID myPID(&Input, &Output, &Setpoint ,.1,1,1, DIRECT);
+PID motorPID(&Input, &Output, &Setpoint ,.1,1,1, DIRECT);
+PID navPID(&Input2, &Output2, &Setpoint2,.1,1,1, DIRECT);
 
 int WindowSize = 5000;
 unsigned long windowStartTime;
 void setup()
 {
+  Serial.begin(115200);
+  GPS.begin(9600);
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  GPS.sendCommand(PGCMD_ANTENNA);
+  useInterrupt(true);
   Wire.begin();
+
+  // Initialize Relays Controlling Motor Angle
   pinMode(POS1, OUTPUT);
   pinMode(NEG1, OUTPUT);
   pinMode(POS2, OUTPUT);
   pinMode(NEG2, OUTPUT);
 
 
-  // With this relay, HIGH is OFF
+  // High is OFF on this relay
   digitalWrite(POS1, HIGH);
   digitalWrite(NEG1, HIGH);
   digitalWrite(POS2, HIGH);
@@ -139,12 +179,13 @@ void setup()
     Serial.begin(115200);
     //initialize the variables we're linked to
     Setpoint = 0.0;
+    Setpoint2 = 0.0;
 
     //tell the PID to range between 0 and the full window size
-    myPID.SetOutputLimits(0, WindowSize);
-
+    motorPID.SetOutputLimits(0, WindowSize);
+    navPID.SetOutputLimits(0, 45);
     //turn the PID on
-    myPID.SetMode(AUTOMATIC);
+    motorPID.SetMode(AUTOMATIC);
 
     Serial.print("Motor Angle: ");
     Serial.println(getMotorAngle());
@@ -158,54 +199,102 @@ void setup()
 
 }
 
+// Interrupt is called once a millisecond, looks for any new GPS data, and stores it
+SIGNAL(TIMER0_COMPA_vect) {
+  char c = GPS.read();
+  // if you want to debug, this is a good time to do it!
+#ifdef UDR0
+  if (GPSECHO)
+    if (c) UDR0 = c;
+    // Writing direct to UDR0 is much much faster than Serial.print
+#endif
+}
+uint32_t timer = millis();
+
+
+void useInterrupt(boolean v) {
+  if (v) {
+    // Timer0 is already used for millis() - we'll just interrupt somewhere
+    // in the middle and call the "Compare A" function above
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+    usingInterrupt = true;
+  } else {
+    // do not call the interrupt function COMPA anymore
+    TIMSK0 &= ~_BV(OCIE0A);
+    usingInterrupt = false;
+  }
+
+}
+uint32_t timer = millis();
+
 void loop()
 {
-    Input = degsBetween(getMagneticHeading(),getMotorAngle()); // Get Motor Angle
-    Serial.print("Input: ");
-    Serial.println(Input);
-    /*************************************************
-    * TODO: Update Setpoint w/ magnetic bearing      *
-    **************************************************/
-    myPID.Compute();
-    Serial.print("Heading - Motor Angle ");
-    Serial.println(getMagneticHeading() - getMotorAngle());
-    Serial.print("Direction to turn: ");
-    bool clockwise = directionToTurn(getMagneticHeading()+Setpoint,getMotorAngle());
-    Serial.println(clockwise);
-
-    /************************************************
-     * turn the output pin on/off based on pid output
-     ************************************************/
-    unsigned long now = millis();
-    if(now - windowStartTime>WindowSize)
-    { //time to shift the Relay Window
-        windowStartTime += WindowSize;
+    if (! usingInterrupt) {
+        char c = GPS.read(); // read data from the GPS in the 'main loop'
+        if (GPSECHO) // Debug using GPSECHO
+          if (c) Serial.print(c);
     }
-    if(Output > now - windowStartTime){
-
-      if(clockwise){
-        digitalWrite(POS1, LOW);
-        digitalWrite(NEG1, HIGH);
-        digitalWrite(POS2, HIGH);
-        digitalWrite(NEG2, LOW);
-
-      }
-      else{
-        digitalWrite(POS1, HIGH);
-        digitalWrite(NEG1, LOW);
-        digitalWrite(POS2, LOW);
-        digitalWrite(NEG2, HIGH);
-      }
-
+    // If NMEA sentence received, parse it
+    if (GPS.newNMEAreceived()) {
+        if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+          return;  // If fails to parse a NMEA sentence, wait for another
     }
-    else {
-        digitalWrite(POS1, HIGH);
-        digitalWrite(NEG1, HIGH);
-        digitalWrite(POS2, HIGH);
-        digitalWrite(NEG2, HIGH);
+
+    if (GPS.fix) {
+        /* Main Loop w/ Fix */
+        Input2 = degsBetween(getMagneticHeading(),getBearing(GPS.lat,GPS.lon,lat2,lon2));
+        Input = degsBetween(getMagneticHeading(),getMotorAngle()); // Get Motor Angle
+
+        /*************************************************
+        * TODO: Update Setpoint w/ magnetic bearing      *
+        **************************************************/
+        navPID.compute();
+        Setpoint = Output2;
+        motorPID.Compute();
+        Serial.print("Heading - Motor Angle ");
+        Serial.println(getMagneticHeading() - getMotorAngle());
+        Serial.print("Direction to turn: ");
+        bool clockwise = directionToTurn(getMagneticHeading()+Setpoint,getMotorAngle());
+        Serial.println(clockwise);
+
+        /************************************************
+         * turn the output pin on/off based on pid output
+         ************************************************/
+        unsigned long now = millis();
+        if(now - windowStartTime>WindowSize)
+        { //time to shift the Relay Window
+            windowStartTime += WindowSize;
+        }
+        if(Output > now - windowStartTime){
+
+          if(clockwise){
+            digitalWrite(POS1, LOW);
+            digitalWrite(NEG1, HIGH);
+            digitalWrite(POS2, HIGH);
+            digitalWrite(NEG2, LOW);
+
+          }
+          else{
+            digitalWrite(POS1, HIGH);
+            digitalWrite(NEG1, LOW);
+            digitalWrite(POS2, LOW);
+            digitalWrite(NEG2, HIGH);
+          }
+
+        }
+        else {
+            digitalWrite(POS1, HIGH);
+            digitalWrite(NEG1, HIGH);
+            digitalWrite(POS2, HIGH);
+            digitalWrite(NEG2, HIGH);
+        }
+        Serial.print("Output: ");
+        Serial.println(Output);
     }
-    Serial.print("Output: ");
-    Serial.println(Output);
+    else{
+        Serial.print("No GPS Connection.");
+    }
 
 }
 
