@@ -1,9 +1,7 @@
 #include "Arduino.h"
 #include "Calculations.h"
 #include <Wire.h>
-
 #define TCAADDR 0x70
-
 float declinationAngle = 0.22;
 
 float Calculations::degreessBetween(float angleOne, float angleTwo) {
@@ -41,7 +39,6 @@ float Calculations::sensorToDegrees( float magneticX, float magneticY ) {
 
 void Calculations::tcaselect(uint8_t i) {
   if (i > 7) return;
-  Wire.begin();
   Wire.beginTransmission(TCAADDR);
   Wire.write(1 << i);
   Wire.endTransmission();

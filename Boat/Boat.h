@@ -11,6 +11,7 @@
 
 // Class Definitions
 class Rudder;
+class Navigation;
 class Motor;
 
 class Boat
@@ -19,8 +20,9 @@ class Boat
     Boat();
     ~Boat();
     float getHeading();
-
+    Navigation* navigation;
     Rudder* rudder;
+
 };
 
 #endif

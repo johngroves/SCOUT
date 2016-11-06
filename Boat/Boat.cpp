@@ -4,24 +4,27 @@
 #include "Arduino.h"
 #include "Calculations.h"
 #include "Rudder.h"
+#include "Navigation.h"
 #include "Boat.h"
 
-Adafruit_HMC5883_Unified boatCompass = Adafruit_HMC5883_Unified(1);
+extern Adafruit_HMC5883_Unified boatCompass;
 int boatAddr = 7;
 
 Boat::Boat()
 {
-    rudder = new Rudder ();
+    rudder = new Rudder();
+    navigation = new Navigation();
 }
 Boat::~Boat()
 {
     delete rudder;
+    delete navigation;
 }
 float Boat::getHeading()
 {
     sensors_event_t event;
     Calculations::tcaselect(boatAddr);
     boatCompass.getEvent(&event);
-    float degs = Calculations::sensorToDegrees(100.20, 30.209);
+    float degs = Calculations::sensorToDegrees(event.magnetic.x, event.magnetic.y);
     return degs;
 }

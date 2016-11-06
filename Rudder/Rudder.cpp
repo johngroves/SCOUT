@@ -1,18 +1,16 @@
-#include <Wire.h>
-#include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
-#include <SoftwareSerial.h>
 #include "Arduino.h"
 #include "Calculations.h"
 #include "Rudder.h"
 #include "Boat.h"
 
-Adafruit_HMC5883_Unified rudderCompass = Adafruit_HMC5883_Unified(1);
+extern Adafruit_HMC5883_Unified rudderCompass;
 int rudderAddr = 6;
+
 
 Rudder::Rudder()
 {
-
+    Serial.print("Rudder Initialized.");
 }
 
 float Rudder::turnTo(float angle, char side)
