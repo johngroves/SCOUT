@@ -7,40 +7,24 @@
 #include "Rudder.h"
 #include "Boat.h"
 
-#define TCAADDR 0x70
-
-Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(1);
-int addr = 6;
-float declinationAngle = 0.22;
-
-void tcaselect(uint8_t i) {
-  if (i > 7) return;
-
-  Wire.beginTransmission(TCAADDR);
-  Wire.write(1 << i);
-  Wire.endTransmission();
-}
+Adafruit_HMC5883_Unified rudderCompass = Adafruit_HMC5883_Unified(1);
+int rudderAddr = 6;
 
 Rudder::Rudder()
 {
 
 }
 
-float turnTo(float angle, char side)
+float Rudder::turnTo(float angle, char side)
 {
 
 }
 
-float getAngle()
-{
-    return 0;
-}
-
-float readCompass()
+float Rudder::getAngle()
 {
     sensors_event_t event;
-    tcaselect(addr);
-    compass.getEvent(&event);
-    float degs = Calculations.sensorToDegrees(event.magnetic.x, event.magnetic.y);
+    Calculations::tcaselect(rudderAddr);
+    rudderCompass.getEvent(&event);
+    float degs = Calculations::sensorToDegrees(event.magnetic.x, event.magnetic.y);
     return degs;
 }

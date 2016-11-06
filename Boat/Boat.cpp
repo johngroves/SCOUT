@@ -1,4 +1,3 @@
-#include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
 #include <SoftwareSerial.h>
@@ -7,32 +6,22 @@
 #include "Rudder.h"
 #include "Boat.h"
 
-#define TCAADDR 0x70
-
-Adafruit_HMC5883_Unified compass = Adafruit_HMC5883_Unified(1);
-int addr = 7;
-float declinationAngle = 0.22;
-
-void tcaselect(uint8_t i) {
-  if (i > 7) return;
-  Wire.beginTransmission(TCAADDR);
-  Wire.write(1 << i);
-  Wire.endTransmission();
-}
+Adafruit_HMC5883_Unified boatCompass = Adafruit_HMC5883_Unified(1);
+int boatAddr = 7;
 
 Boat::Boat()
 {
-    rudder = new Rudder (* this );
+    rudder = new Rudder ();
 }
 Boat::~Boat()
 {
     delete rudder;
 }
-float getHeading()
+float Boat::getHeading()
 {
     sensors_event_t event;
-    tcaselect(addr);
-    compass.getEvent(&event);
-    float degs = Calculations.sensorToDegrees(event.magnetic.x, event.magnetic.y);
+    Calculations::tcaselect(boatAddr);
+    boatCompass.getEvent(&event);
+    float degs = Calculations::sensorToDegrees(100.20, 30.209);
     return degs;
 }

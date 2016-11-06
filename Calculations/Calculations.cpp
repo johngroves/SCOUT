@@ -1,7 +1,11 @@
 #include "Arduino.h"
 #include "Calculations.h"
+#include <Wire.h>
+#define TCAADDR 0x70
 
-float degreessBetween(float angleOne, float angleTwo) {
+float declinationAngle = 0.22;
+
+float Calculations::degreessBetween(float angleOne, float angleTwo) {
 /*
     Calculates the shortest distance (in radians) between two headings (in degrees)
 */
@@ -17,7 +21,7 @@ float degreessBetween(float angleOne, float angleTwo) {
     return headingDelta;
 }
 
-float sensorToDegrees( float magneticX, float magneticY ) {
+float Calculations::sensorToDegrees( float magneticX, float magneticY ) {
 /*
     Accepts magnetic x and magnetic y, returns heading in degrees.
 */
@@ -33,3 +37,10 @@ float sensorToDegrees( float magneticX, float magneticY ) {
     return degs;
 }
 
+
+void Calculations::tcaselect(uint8_t i) {
+  if (i > 7) return;
+  Wire.beginTransmission(TCAADDR);
+  Wire.write(1 << i);
+  Wire.endTransmission();
+}

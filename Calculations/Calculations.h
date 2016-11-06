@@ -4,8 +4,6 @@
 
 #ifndef CALCULATIONS_H
 #define CALCULATIONS_H
-#define declinationAngle = 0.22
-
 #include "Arduino.h"
 
 // Class Definitions
@@ -13,8 +11,10 @@ class Calculations
 {
   public:
     Calculations();
-    float radiansBetween(float degrees1, float degrees2);
-    float sensorToDegrees(float magneticX, float magneticY );
+    static void  tcaselect(uint8_t i);
+    static float radiansBetween(float degrees1, float degrees2);
+    static float sensorToDegrees(float magneticX, float magneticY );
+    static float degreessBetween(float angleOne, float angleTwo);
 };
 
 #endif

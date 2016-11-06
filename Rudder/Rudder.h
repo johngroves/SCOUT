@@ -15,8 +15,8 @@ class Rudder
 {
   public:
     Rudder();
-    void turnTo(float angle, char side);
     float getAngle();
+    float turnTo(float angle, char side);
 };
 
 #endif
