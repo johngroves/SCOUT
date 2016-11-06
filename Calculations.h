@@ -15,6 +15,6 @@ class Calculations
     Calculations();
     float radiansBetween(float degrees1, float degrees2);
     float sensorToDegrees(float magneticX, float magneticY );
-}
+};
 
 #endif

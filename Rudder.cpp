@@ -33,7 +33,7 @@ float turnTo(float angle, char side)
 
 float getAngle()
 {
-
+    return 0;
 }
 
 float readCompass()

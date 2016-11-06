@@ -17,6 +17,6 @@ class Rudder
     Rudder();
     void turnTo(float angle, char side);
     float getAngle();
-}
+};
 
 #endif
