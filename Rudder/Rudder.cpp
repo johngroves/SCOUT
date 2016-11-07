@@ -62,9 +62,18 @@ Rudder::Rudder() {
     turnOff();
 }
 
-float Rudder::turnTo(float angle, char side) {
+rudderPosition Rudder::turnTo(float angle, char side) {
+
+    if (angle > 40)
+        angle = 40;
+
     float boatHeading = db1.getHeading();
-    return getCompass();
+    if (side == 'p') {
+
+    } else {
+
+    }
+    return this->getAngle();
 }
 
 rudderPosition Rudder::getAngle() {
