@@ -7,6 +7,11 @@
 
 #include "Arduino.h"
 
+struct rudderPosition {
+    float angle;
+    char direction;
+};
+
 // Class Definitions
 class RudderController;
 class RudderPositionSensor;
@@ -15,7 +20,7 @@ class Rudder
 {
   public:
     Rudder();
-    float getAngle();
+    rudderPosition getAngle(float boatHeading);
     float turnTo(float angle, char side);
 };
 

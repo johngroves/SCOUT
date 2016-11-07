@@ -14,7 +14,8 @@ class Calculations
     static void  tcaselect(uint8_t i);
     static float radiansBetween(float degrees1, float degrees2);
     static float sensorToDegrees(float magneticX, float magneticY );
-    static float degreessBetween(float angleOne, float angleTwo);
+    static float degreesBetween(float angleOne, float angleTwo);
+    static float degreesToRadians(float degrees);
 };
 
 #endif

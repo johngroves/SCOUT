@@ -4,7 +4,7 @@
 #define TCAADDR 0x70
 float declinationAngle = 0.22;
 
-float Calculations::degreessBetween(float angleOne, float angleTwo) {
+float Calculations::degreesBetween(float angleOne, float angleTwo) {
 /*
     Calculates the shortest distance (in radians) between two headings (in degrees)
 */
@@ -18,6 +18,10 @@ float Calculations::degreessBetween(float angleOne, float angleTwo) {
         headingDelta = (headingDelta);
     }
     return headingDelta;
+}
+
+float Calculations::degreesToRadians(float degrees) {
+    return (degrees * 3.1415926535) / 180.0;
 }
 
 float Calculations::sensorToDegrees( float magneticX, float magneticY ) {

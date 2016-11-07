@@ -27,12 +27,15 @@ Adafruit_HMC5883_Unified boatCompass = Adafruit_HMC5883_Unified(2);
 Boat db1 = Boat(); 
 
 void printStats() {
-  float rudderAngle = db1.rudder->getAngle();
   float boatHeading = db1.getHeading();
+  rudderPosition rudderPos = db1.rudder->getAngle(boatHeading);
+  float rudderAngle = rudderPos.angle; 
+  char rudderSide = rudderPos.direction;
   Coordinate coord = db1.navigation->getCurrentLocation();
   Serial.println("");
   Serial.print("Rudder Angle: ");
-  Serial.println(rudderAngle);
+  Serial.println(rudderAngle); 
+  Serial.print(rudderSide);
   Serial.print("Boat Heading: ");
   Serial.println(boatHeading);
   Serial.print("Latitude: ");
