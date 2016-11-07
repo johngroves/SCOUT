@@ -39,9 +39,9 @@ rudderPosition Rudder::getAngle(float boatHeading)
     float direction = sin((boatRads - rudderRads));
 
     if (direction > 0) {
-        position.direction = 'p';
-    } else {
         position.direction = 's';
+    } else {
+        position.direction = 'p';
     }
     return position;
 }
