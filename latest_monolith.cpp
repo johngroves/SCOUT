@@ -4,7 +4,6 @@
 #include <Wire.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_HMC5883_U.h>
-#include <SoftwareSerial.h>
 #include <Adafruit_GPS.h>
 #include <PID_v1.h>
 

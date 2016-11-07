@@ -6,10 +6,18 @@
 using namespace std;
 
 extern Adafruit_HMC5883_Unified rudderCompass;
-int rudderAddr = 6;
 
-float getCompass()
-{
+// i2C Address of Rudder Sensor
+int rudderAddr = 6;
+// Relay Pins
+int POS1 = 46;
+int NEG1 = 45;
+int POS2 = 44;
+int NEG2 = 47;
+
+
+float getCompass() {
+
     sensors_event_t event;
     Calculations::tcaselect(rudderAddr);
     rudderCompass.getEvent(&event);
@@ -17,18 +25,50 @@ float getCompass()
     return degs;
 }
 
-Rudder::Rudder()
-{
+void turnOff() {
+
+    // High is off for this relay
+    digitalWrite(POS1, HIGH);
+    digitalWrite(NEG1, HIGH);
+    digitalWrite(POS2, HIGH);
+    digitalWrite(NEG2, HIGH);
+}
+
+void toPort() {
+
+    digitalWrite(POS1, LOW);
+    digitalWrite(NEG1, HIGH);
+    digitalWrite(POS2, HIGH);
+    digitalWrite(NEG2, LOW);
+}
+
+void toStarboard() {
+
+    digitalWrite(POS1, HIGH);
+    digitalWrite(NEG1, LOW);
+    digitalWrite(POS2, LOW);
+    digitalWrite(NEG2, HIGH);
+}
+
+Rudder::Rudder() {
+
+    // Initialize Rudder Control Digital Pins
+    pinMode(POS1, OUTPUT);
+    pinMode(NEG1, OUTPUT);
+    pinMode(POS2, OUTPUT);
+    pinMode(NEG2, OUTPUT);
+
     Serial.print("Rudder Initialized.");
 }
 
-float Rudder::turnTo(float angle, char side)
-{
+float Rudder::turnTo(float angle, char side) {
 
+    delay(500);
+    return getCompass();
 }
 
-rudderPosition Rudder::getAngle(float boatHeading)
-{
+rudderPosition Rudder::getAngle(float boatHeading) {
+
     rudderPosition position;
 
     float rudderHeading = getCompass();

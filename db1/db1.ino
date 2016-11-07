@@ -34,8 +34,12 @@ void printStats() {
   Coordinate coord = db1.navigation->getCurrentLocation();
   Serial.println("");
   Serial.print("Rudder Angle: ");
-  Serial.println(rudderAngle); 
-  Serial.print(rudderSide);
+  Serial.print(rudderAngle); 
+  if(rudderSide == 'p'){
+    Serial.println("° Port");
+  } else {
+    Serial.println("° Starboard");
+  }
   Serial.print("Boat Heading: ");
   Serial.println(boatHeading);
   Serial.print("Latitude: ");
@@ -83,6 +87,7 @@ void loop() {
           return;  
   }  
   printStats();  
+  db1.rudder->turnTo(2.290,'s');
   delay(1000);
 }
 
