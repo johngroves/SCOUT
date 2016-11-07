@@ -6,6 +6,7 @@
 using namespace std;
 
 extern Adafruit_HMC5883_Unified rudderCompass;
+extern Boat db1;
 
 // i2C Address of Rudder Sensor
 int rudderAddr = 6;
@@ -57,21 +58,21 @@ Rudder::Rudder() {
     pinMode(NEG1, OUTPUT);
     pinMode(POS2, OUTPUT);
     pinMode(NEG2, OUTPUT);
-
     Serial.print("Rudder Initialized.");
+    turnOff();
 }
 
 float Rudder::turnTo(float angle, char side) {
-
-    delay(500);
+    float boatHeading = db1.getHeading();
     return getCompass();
 }
 
-rudderPosition Rudder::getAngle(float boatHeading) {
+rudderPosition Rudder::getAngle() {
 
     rudderPosition position;
-
     float rudderHeading = getCompass();
+    float boatHeading = db1.getHeading();
+
     position.angle = Calculations::degreesBetween(boatHeading,rudderHeading);
 
     float rudderRads = Calculations::degreesToRadians(rudderHeading);

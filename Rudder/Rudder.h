@@ -13,14 +13,13 @@ struct rudderPosition {
 };
 
 // Class Definitions
-class RudderController;
-class RudderPositionSensor;
+class Boat;
 
 class Rudder
 {
   public:
     Rudder();
-    rudderPosition getAngle(float boatHeading);
+    rudderPosition getAngle();
     float turnTo(float angle, char side);
 };
 

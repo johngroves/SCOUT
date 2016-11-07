@@ -28,7 +28,7 @@ Boat db1 = Boat();
 
 void printStats() {
   float boatHeading = db1.getHeading();
-  rudderPosition rudderPos = db1.rudder->getAngle(boatHeading);
+  rudderPosition rudderPos = db1.rudder->getAngle();
   float rudderAngle = rudderPos.angle; 
   char rudderSide = rudderPos.direction;
   Coordinate coord = db1.navigation->getCurrentLocation();
