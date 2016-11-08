@@ -69,7 +69,9 @@ rudderPosition Rudder::turnTo(float angle, char side) {
 
     float boatHeading = db1.getHeading();
     if (side == 'p') {
+        if ( angle > this->getAngle().angle ) {
 
+        }
     } else {
 
     }
