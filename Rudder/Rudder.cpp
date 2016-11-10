@@ -26,6 +26,7 @@ float getCompass() {
     return degs;
 }
 
+
 void turnOff() {
 
     // High is off for this relay
@@ -51,6 +52,22 @@ void toStarboard() {
     digitalWrite(NEG2, HIGH);
 }
 
+void turnToSide(char side, bool same) {
+    if (side = 'p') {
+        if (same) {
+            toPort();
+        } else {
+            toStarboard();
+        }
+    } else {
+        if (same) {
+            toStarboard();
+        } else {
+            toPort();
+        }
+    }
+}
+
 Rudder::Rudder() {
 
     // Initialize Rudder Control Digital Pins
@@ -66,14 +83,28 @@ rudderPosition Rudder::turnTo(float angle, char side) {
 
     if (angle > 40)
         angle = 40;
-
     float boatHeading = db1.getHeading();
-    if (side == 'p') {
-        if ( angle > this->getAngle().angle ) {
-
+    rudderPosition currentPosition = this->getAngle();
+    if ( side == currentPosition.direction ) {
+        if ( angle > currentPosition.angle ) {
+            while (angle > currentPosition.angle) {
+                turnToSide(side,true);
+                currentPosition = this->getAngle();
+            }
+            turnOff();
+        } else {
+            while (angle < currentPosition.angle) {
+                turnToSide(side,false);
+                currentPosition = this->getAngle();
+            }
+            turnOff();
         }
     } else {
-
+            while (angle > currentPosition.angle || currentPosition.direction != side ) {
+                turnToSide(side,false);
+                currentPosition = this->getAngle();
+            }
+            turnOff();
     }
     return this->getAngle();
 }
