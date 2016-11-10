@@ -6,10 +6,19 @@
 #include <Adafruit_HMC5883_U.h>
 #include <Adafruit_Sensor.h>
 #include <SoftwareSerial.h>
+#include <CmdMessenger.h>
 #include <Wire.h>
 
 #define TCAADDR 0x70
 
+// TODO: Move serial messaging to new file
+enum {
+    get_telemetry_data,
+    telemetry_data,
+    turn_to,
+    new_rudder_position,
+    error,
+};
 
 void tcaselect(uint8_t i) {
   if (i > 7) return;
@@ -24,28 +33,23 @@ HardwareSerial mySerial = Serial3;
 Adafruit_HMC5883_Unified rudderCompass = Adafruit_HMC5883_Unified(1);
 Adafruit_HMC5883_Unified boatCompass = Adafruit_HMC5883_Unified(2);
 
-Boat db1 = Boat(); 
+Boat db1 = Boat();
 
-void printStats() {
+CmdMessenger c = CmdMessenger(Serial,',',';','/');
+
+void () {
   float boatHeading = db1.getHeading();
   rudderPosition rudderPos = db1.rudder->getAngle();
   float rudderAngle = rudderPos.angle; 
   char rudderSide = rudderPos.direction;
   Coordinate coord = db1.navigation->getCurrentLocation();
-  Serial.println("");
-  Serial.print("Rudder Angle: ");
-  Serial.print(rudderAngle); 
-  if(rudderSide == 'p'){
-    Serial.println("° Port");
-  } else {
-    Serial.println("° Starboard");
-  }
-  Serial.print("Boat Heading: ");
-  Serial.println(boatHeading);
-  Serial.print("Latitude: ");
-  Serial.println(coord.latitude);
-  Serial.print("Longitude: ");
-  Serial.println(coord.longitude);
+  c.sendCmd(telemetry_data,
+            boatHeading,
+            rudderAngle,
+            rudderSide,
+            coord.latitude,
+            coord.longitude
+  );
 }
  
 void setup() {
@@ -87,8 +91,7 @@ void loop() {
           return;  
   }  
   printStats();  
-  db1.rudder->turnTo(2.290,'s');
-  delay(1000);
+  db1.rudder->turnTo(20,'s');
 }
 
 
