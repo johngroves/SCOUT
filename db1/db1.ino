@@ -37,50 +37,79 @@ Boat db1 = Boat();
 
 CmdMessenger c = CmdMessenger(Serial,',',';','/');
 
-void () {
-  float boatHeading = db1.getHeading();
-  rudderPosition rudderPos = db1.rudder->getAngle();
-  float rudderAngle = rudderPos.angle; 
-  char rudderSide = rudderPos.direction;
-  Coordinate coord = db1.navigation->getCurrentLocation();
-  c.sendCmd(telemetry_data,
-            boatHeading,
-            rudderAngle,
-            rudderSide,
-            coord.latitude,
-            coord.longitude
-  );
+void return_telemetry(void) {
+    // Fetch latest telemetry data
+    float boatHeading = db1.getHeading();
+    rudderPosition rudderPos = db1.rudder->getAngle();
+    float rudderAngle = rudderPos.angle;
+    char rudderSide = rudderPos.direction;
+    Coordinate coord = db1.navigation->getCurrentLocation();
+
+    // Return results over serial
+    c.sendCmdStart(telemetry_data);
+    c.sendCmdBinArg(boatHeading);
+    c.sendCmdBinArg(rudderAngle);
+    c.sendCmdBinArg(rudderSide);
+    c.sendCmdBinArg(coord.latitude);
+    c.sendCmdBinArg(coord.longitude);
+    c.sendCmdEnd();
 }
- 
+
+void onTurnCommand(void){
+
+    // Accept angle (float), side (char), returns new position
+    float desiredAngle = c.readBinArg<float>();
+    char desiredSide = c.readBinArg<char>();
+
+    // Turn rudder
+    rudderPosition newPosition = db1.rudder->turnTo(desiredAngle,desiredSide);
+
+    // Return new position
+    c.sendCmdStart(new_rudder_position);
+    c.sendCmdBinArg(newPosition.angle);
+    c.sendCmdBinArg(newPosition.direction);
+    c.sendCmdEnd();
+}
+
+void on_unknown_command(void){
+    c.sendCmd(error,"Command without callback.");
+}
+
+void attach_callbacks(void) {
+    c.attach(get_telemetry_data,return_telemetry);
+    c.attach(turn_to,onTurnCommand);
+    c.attach(on_unknown_command);
+}
+
 void setup() {
-  // Start Processes at Serial Ports
-  Serial.begin(115200);
-  Wire.begin();   
-  GPS.begin(9600);   
 
-  // Start GPS w/ External Antenna Support (update @ 1hz)
-  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
-  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
-  GPS.sendCommand(PGCMD_ANTENNA);
+    // Start Processes at Serial Ports
+    Serial.begin(115200);
+    Wire.begin();
+    GPS.begin(9600);
+    attach_callbacks();
 
-  // Upon Success
-  Serial.println("ATmega1280 Started. Serial Comms Succesful.");
+    // Start GPS w/ External Antenna Support (update @ 1hz)
+    GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+    GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+    GPS.sendCommand(PGCMD_ANTENNA);
 
-  // Initialize Sensors
-  
-  tcaselect(6);
-  if(!rudderCompass.begin())
-  {
-    Serial.println("Error: Rudder Sensor Did Not Initialize.");
-    while(1);
-  }
+    // Upon Success
+    Serial.println("ATmega1280 Started. Serial Comms Succesful.");
 
-  tcaselect(7);
-  if(!boatCompass.begin())
-  {
-    Serial.println("Error: Rudder Sensor Did Not Initialize.");
-    while(1);
-  }
+    // Initialize Magnetometer
+    tcaselect(6);
+    if(!rudderCompass.begin())
+    {
+        Serial.println("Error: Rudder Sensor Did Not Initialize.");
+        while(1);
+    }
+    tcaselect(7);
+    if(!boatCompass.begin())
+    {
+        Serial.println("Error: Rudder Sensor Did Not Initialize.");
+        while(1);
+    }
 
 }
 
@@ -89,9 +118,9 @@ void loop() {
   if (GPS.newNMEAreceived()) {
         if (!GPS.parse(GPS.lastNMEA()))  
           return;  
-  }  
-  printStats();  
-  db1.rudder->turnTo(20,'s');
+  }
+  c.feedinSerialData();
+
 }
 
 
