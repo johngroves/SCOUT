@@ -75,7 +75,8 @@ Rudder::Rudder() {
     pinMode(NEG1, OUTPUT);
     pinMode(POS2, OUTPUT);
     pinMode(NEG2, OUTPUT);
-    Serial.print("Rudder Initialized.");
+
+    //Serial.print("Rudder Initialized.");
     turnOff();
 }
 

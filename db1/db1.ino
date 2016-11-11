@@ -95,19 +95,19 @@ void setup() {
     GPS.sendCommand(PGCMD_ANTENNA);
 
     // Upon Success
-    Serial.println("ATmega1280 Started. Serial Comms Succesful.");
+    //Serial.println("ATmega1280 Started. Serial Comms Succesful.");
 
     // Initialize Magnetometer
     tcaselect(6);
     if(!rudderCompass.begin())
     {
-        Serial.println("Error: Rudder Sensor Did Not Initialize.");
+        //Serial.println("Error: Rudder Sensor Did Not Initialize.");
         while(1);
     }
     tcaselect(7);
     if(!boatCompass.begin())
     {
-        Serial.println("Error: Rudder Sensor Did Not Initialize.");
+        //Serial.println("Error: Rudder Sensor Did Not Initialize.");
         while(1);
     }
 
