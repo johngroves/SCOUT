@@ -12,25 +12,27 @@ commands = [["get_telemetry_data",""],
             ["error","s"]]
 
 c = PyCmdMessenger.CmdMessenger(arduino,commands)
-c.send("get_telemetry_data")
-msg = c.receive()
 
-msg_data = msg[1]
-data = {
-    "boat_heading": msg_data[0],
-    "rudder_angle": msg_data[1],
-    "rudder_side": msg_data[2],
-    "latitude": msg_data[3],
-    "longitude": msg_data[4]
-}
-print (data)
+while True:
+    c.send("get_telemetry_data")
+    msg = c.receive()
 
-c.send("turn_to",32.4444,'p')
-msg = c.receive()
+    msg_data = msg[1]
+    data = {
+        "boat_heading": msg_data[0],
+        "rudder_angle": msg_data[1],
+        "rudder_side": msg_data[2],
+        "latitude": msg_data[3],
+        "longitude": msg_data[4]
+    }
+    print (data)
 
-msg_data = msg[1]
-data = {
-    "rudder_angle": msg_data[0],
-    "rudder_side": msg_data[1]
-}
-print(data)
+# c.send("turn_to",32.4444,'p')
+# msg = c.receive()
+#
+# msg_data = msg[1]
+# data = {
+#     "rudder_angle": msg_data[0],
+#     "rudder_side": msg_data[1]
+# }
+# print(data)
