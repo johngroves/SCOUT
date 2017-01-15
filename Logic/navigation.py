@@ -4,7 +4,7 @@
 
 
 import PyCmdMessenger
-arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1411",baud_rate=115200, timeout=10)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1421",baud_rate=115200, timeout=10)
 commands = [["get_telemetry_data",""],
             ["telemetry_data","ffcff"],
             ["turn_to","fc"],
@@ -16,7 +16,7 @@ c = PyCmdMessenger.CmdMessenger(arduino,commands)
 while True:
     c.send("get_telemetry_data")
     msg = c.receive()
-
+    print (msg)
     msg_data = msg[1]
     data = {
         "boat_heading": msg_data[0],
@@ -26,13 +26,12 @@ while True:
         "longitude": msg_data[4]
     }
     print (data)
+     c.send("turn_to",32.4444,'p')
+     msg = c.receive()
 
-# c.send("turn_to",32.4444,'p')
-# msg = c.receive()
-#
-# msg_data = msg[1]
-# data = {
-#     "rudder_angle": msg_data[0],
-#     "rudder_side": msg_data[1]
-# }
-# print(data)
+     msg_data = msg[1]
+     data = {
+         "rudder_angle": msg_data[0],
+         "rudder_side": msg_data[1]
+     }
+     print(data)
