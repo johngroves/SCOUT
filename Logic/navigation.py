@@ -3,10 +3,15 @@
 # ------------------------------------------------------------------------------
 
 from math import radians, cos, sin, asin, sqrt, atan2
-from pid import PID
+import pid
 import PyCmdMessenger, geo, geomag
 
 waypoints = []
+
+controller = pid.PID(P=0.2, I=0.0, D=0.0)
+controller.setSampleTime(5.0)
+controller.SetPoint = 100
+turn_to = controller.output
 
 def setup():
     serial_port = "/dev/cu.usbmodem1421"
@@ -46,6 +51,17 @@ def navigate ():
         avg_heading = mean_heading(heading_history)
 
         # Calculate bearing to next waypoint
+        next_waypoint = waypoints[:-1]
+        next_lat, next_lon = next_waypoint
+        lat1, lon1 = avg_location
+        bearing = get_bearing(lat1, lon1, next_lat, next_lon)
+
+        # PID
+        controller.SetPoint = bearing
+        controller.update(avg_heading)
+
+        # Turn
+        turn_to(controller.output)
 
 
 def cartesian_average (coords):
