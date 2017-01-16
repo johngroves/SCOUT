@@ -2,16 +2,21 @@
 # Control Arduino With Python Via Serial
 # ------------------------------------------------------------------------------
 
-from math import radians, cos, sin, asin, sqrt
+from math import radians, cos, sin, asin, sqrt, atan2, degrees
 import PyCmdMessenger
+import geo
+import geomag
 
-arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1421",baud_rate=115200, timeout=10)
-commands = [["get_telemetry_data",""],
-            ["telemetry_data","ffcff"],
-            ["turn_to","fc"],
-            ["new_rudder_position","fc"],
-            ["error","s"]]
-c = PyCmdMessenger.CmdMessenger(arduino,commands)
+
+def connect():
+
+    arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1421",baud_rate=115200, timeout=10)
+    commands = [["get_telemetry_data",""],
+                ["telemetry_data","ffcff"],
+                ["turn_to","fc"],
+                ["new_rudder_position","fc"],
+                ["error","s"]]
+    c = PyCmdMessenger.CmdMessenger(arduino,commands)
 
 def navigate ():
 
@@ -77,13 +82,13 @@ def mean_heading (headings):
     return cmath.phase(vector_sum)
 
 
-def haversine(lon1, lat1, lon2, lat2):
+def calc_distance(lat1, lon1, lat2, lon2):
     """
     Calculate the great circle distance between two points
     on the earth (specified in decimal degrees)
     """
     # convert decimal degrees to radians
-    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
 
     # haversine formula
     dlon = lon2 - lon1
@@ -94,3 +99,33 @@ def haversine(lon1, lat1, lon2, lat2):
     r = 3956 # Radius of earth in kilometers. Use 3956 for miles
 
     return c * r
+
+def calc_angle(lat1, lon1, lat2, lon2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 3956 # Radius of earth in kilometers. Use 3956 for miles
+
+    return a
+
+def get_bearing(lat1, lon1, lat2, lon2):
+
+    waypoint_1 = geo.xyz(lat1, lon1)
+    waypoint_2 = geo.xyz(lat2, lon2)
+
+    true_north = geo.great_circle_angle(waypoint_1, waypoint_2, geo.geographic_northpole)
+    bearing = geomag.mag_heading(true_north, dlat=lat1, dlon=lon1)
+
+    return bearing
+
+print (get_bearing(48.137222,11.575556,52.518611,13.408056))
