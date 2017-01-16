@@ -2,15 +2,15 @@
 # Control Arduino With Python Via Serial
 # ------------------------------------------------------------------------------
 
-
+from math import radians, cos, sin, asin, sqrt
 import PyCmdMessenger
+
 arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1421",baud_rate=115200, timeout=10)
 commands = [["get_telemetry_data",""],
             ["telemetry_data","ffcff"],
             ["turn_to","fc"],
             ["new_rudder_position","fc"],
             ["error","s"]]
-
 c = PyCmdMessenger.CmdMessenger(arduino,commands)
 
 def navigate ():
@@ -66,8 +66,31 @@ def cartesian_average (coords):
 
 
 def mean_heading (headings):
-
+    """
+    Calculate the average heading from a list of headings
+    :param headings:
+    :return: average heading
+    """
     vectors = [cmath.rect(1, angle) for angle in list_of_angles]
     vector_sum = sum(vectors)
 
     return cmath.phase(vector_sum)
+
+
+def haversine(lon1, lat1, lon2, lat2):
+    """
+    Calculate the great circle distance between two points
+    on the earth (specified in decimal degrees)
+    """
+    # convert decimal degrees to radians
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+
+    # haversine formula
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    r = 3956 # Radius of earth in kilometers. Use 3956 for miles
+
+    return c * r
