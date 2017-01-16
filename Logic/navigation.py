@@ -2,26 +2,50 @@
 # Control Arduino With Python Via Serial
 # ------------------------------------------------------------------------------
 
-from math import radians, cos, sin, asin, sqrt, atan2, degrees
-import PyCmdMessenger
-import geo
-import geomag
+from math import radians, cos, sin, asin, sqrt, atan2
+from pid import PID
+import PyCmdMessenger, geo, geomag
 
-serial_port = "/dev/cu.usbmodem1421"
-arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=10)
-commands = [["get_telemetry_data",""],
-            ["telemetry_data","ffcff"],
-            ["turn_to","fc"],
-            ["new_rudder_position","fc"],
-            ["error","s"]]
+waypoints = []
 
-c = PyCmdMessenger.CmdMessenger(arduino,commands)
+def setup():
+    serial_port = "/dev/cu.usbmodem1421"
+    arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=10)
+    commands = [["get_telemetry_data",""],
+                ["telemetry_data","ffcff"],
+                ["turn_to","fc"],
+                ["new_rudder_position","fc"],
+                ["error","s"]]
+
+    c = PyCmdMessenger.CmdMessenger(arduino,commands)
 
 
 def navigate ():
     """
     Main loop handling navigation.
     """
+    position_history = collections.deque([], maxlen=10)
+    heading_history = collections.deque([], maxlen=10)
+
+    while True:
+        # Get latest telemetry data
+        tel_data = get_telemetry()
+        heading = tel_data['boat_heading']
+        rudder_angle = tel_data['rudder_angle']
+        rudder_side = tel_data['rudder_side']
+        latitude = tel_data['latitude']
+        longitude = tel_data['longitude']
+        location_tuple = (latitude,longitude)
+
+        # Rolling 10 locations, headings
+        position_history.append(location_tuple)
+        heading_history.append(heading)
+
+        # Gather center location, heading
+        avg_location = cartesian_average(position_history)
+        avg_heading = mean_heading(heading_history)
+
+        # Calculate bearing to next waypoint
 
 
 def cartesian_average (coords):
@@ -49,10 +73,10 @@ def cartesian_average (coords):
     avg_lon = atan2(avg_y, avg_x)
     avg_lat = atan2(avg_z, hyp)
 
-    return avg_lat, avg_lon
+    return tuple(avg_lat, avg_lon)
 
 
-def mean_heading (headings):
+def mean_heading(headings):
     """
     Calculate the average heading from a list of headings
     :param headings:
