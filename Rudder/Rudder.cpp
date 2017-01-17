@@ -88,20 +88,20 @@ rudderPosition Rudder::turnTo(float angle, char side) {
     rudderPosition currentPosition = this->getAngle();
     if ( side == currentPosition.direction ) {
         if ( angle > currentPosition.angle ) {
-            while (angle > currentPosition.angle) {
+            while (angle > currentPosition.angle && side == currentPosition.direction) {
                 turnToSide(side,true);
                 currentPosition = this->getAngle();
             }
             turnOff();
         } else {
-            while (angle < currentPosition.angle) {
+            while (angle < currentPosition.angle && side == currentPosition.direction) {
                 turnToSide(side,false);
                 currentPosition = this->getAngle();
             }
             turnOff();
         }
     } else {
-            while (angle > currentPosition.angle || currentPosition.direction != side && currentPosition.angle < 50) {
+            while (currentPosition.direction != side) {
                 turnToSide(side,false);
                 currentPosition = this->getAngle();
             }
