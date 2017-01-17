@@ -2,20 +2,16 @@
 # Control Arduino With Python Via Serial
 # ------------------------------------------------------------------------------
 
-from math import radians, cos, sin, asin, sqrt, atan2
+from math import radians, cos, sin, asin, sqrt, atan2, degrees
 from collections import deque
-import pid, cmath, time
-from numpy import interp
+from pid import PID
+import cmath, time
 import PyCmdMessenger, geo, geomag
 
 global c
 waypoints = [(37.526395, -122.258265)]
 
-controller = pid.PID(P=0.2, I=0.0, D=0.0)
-controller.setSampleTime(5.0)
-controller.SetPoint = 100
-turn_to = controller.output
-
+pid = PID(1.0, 0.0, 0.0, 0, 1)
 
 def setup():
     global c
@@ -83,20 +79,16 @@ def navigate ():
         next_lat, next_lon = next_waypoint
         lat1, lon1 = avg_location
         bearing = get_bearing(lat1, lon1, next_lat, next_lon)
+        error = degrees_between(avg_heading,bearing)
 
         # PID
-        controller.SetPoint = bearing
-        controller.update(avg_heading)
+        new, output = pid.compute(error)
 
         # Turn
-        raw_out = controller.output
-        print (controller.output)
-        print ("Raw output:",scale(raw_out))
-        angle,side = scale(raw_out)
-        new_angle = turn_to(angle, side)
-        print("New angle",new_angle)
+        if new:
+            angle, side = scale(output)
+            new_angle = turn_to(angle, side)
         time.sleep(3)
-
 
 
 def cartesian_average (coords):
@@ -139,25 +131,6 @@ def mean_heading(headings):
     return cmath.phase(vector_sum)
 
 
-def calc_distance(lat1, lon1, lat2, lon2):
-    """
-    Calculate the great circle distance between two points
-    on the earth (specified in decimal degrees)
-    """
-    # convert decimal degrees to radians
-    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
-
-    # haversine formula
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-    c = 2 * asin(sqrt(a))
-    r = 3956 # Radius of earth in kilometers. Use 3956 for miles
-
-    return c * r
-
-
 def haversine(lat1, lon1, lat2, lon2):
     """
     Calculate the great circle distance between two points
@@ -185,7 +158,7 @@ def get_bearing(lat1, lon1, lat2, lon2):
     """
     waypoint_1 = geo.xyz(lat1, lon1)
     waypoint_2 = geo.xyz(lat2, lon2)
-    true_north = geo.great_circle_angle(waypoint_1, waypoint_2, geo.geographic_northpole)
+    true_north = geo.great_circle_angle(waypoint_2, waypoint_1, geo.geographic_northpole)
     bearing = geomag.mag_heading(true_north, dlat=lat1, dlon=lon1)
 
     return bearing
@@ -208,19 +181,24 @@ def turn_to(angle,side):
     return data
 
 
-def scale(pid_output):
-    output = 0
-    if pid_output > 360:
-        output = 360
-    output = interp(output,[-360,360],[0,80])
-    output = output / 2.0
-    if output >= 40:
+def degrees_between(angle_1, angle_2):
+    """
+    Calculates the smallest angle between two headings
+    :param angle_1: float
+    :param angle_2: float
+    :return: float
+    """
+    difference = ((angle_2 - angle_1) + 180) % 360 - 180
+
+    return difference
+
+
+def scale(output):
+    if output >= 0:
         side = 'p'
     else:
         side = 's'
-    return output,side
-
-
+    return abs(output),side
 
 
 def get_telemetry():
@@ -258,5 +236,6 @@ def get_telemetry():
     return data
 
 if __name__ == "__main__":
-    setup()
-    navigate()
+    #setup()
+    #navigate()
+    print(degrees_between(355.0,5.0))

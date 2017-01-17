@@ -1,133 +1,221 @@
-#!/usr/bin/python
-#
-# This file is part of IvPID.
-# Copyright (C) 2015 Ivmech Mechatronics Ltd. <bilgi@ivmech.com>
-#
-# IvPID is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# IvPID is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+This is a Python PID module heavily inspired by the Arduino PID Library
+written by Brett Beauregard.
 
-# title           :PID.py
-# description     :python pid controller
-# author          :Caner Durmusoglu
-# date            :20151218
-# version         :0.1
-# notes           :
-# python_version  :2.7
-# ==============================================================================
-
-"""Ivmech PID Controller is simple implementation of a Proportional-Integral-Derivative (PID) Controller in the Python Programming Language.
-More information about PID Controller: http://en.wikipedia.org/wiki/PID_controller
+http://brettbeauregard.com/blog/2011/04/improving-the-beginners-pid-introduction/
 """
 import time
+from enum import Enum
 
-class PID:
-    """PID Controller
-    """
 
-    def __init__(self, P=0.2, I=0.0, D=0.0):
+class Direction(Enum):
+    direct = 1
+    reverse = 2
 
-        self.Kp = P
-        self.Ki = I
-        self.Kd = D
 
-        self.sample_time = 0.00
-        self.current_time = time.time()
-        self.last_time = self.current_time
+class Mode(Enum):
+    automatic = 1
+    manual = 2
 
-        self.clear()
 
-    def clear(self):
-        """Clears PID computations and coefficients"""
-        self.SetPoint = 0.0
+class PID(object):
 
-        self.PTerm = 0.0
-        self.ITerm = 0.0
-        self.DTerm = 0.0
-        self.last_error = 0.0
-
-        # Windup Guard
-        self.int_error = 0.0
-        self.windup_guard = 20.0
-
-        self.output = 0.0
-
-    def update(self, feedback_value):
-        """Calculates PID value for given reference feedback
-
-        .. math::
-            u(t) = K_p e(t) + K_i \int_{0}^{t} e(t)dt + K_d {de}/{dt}
-
-        .. figure:: images/pid_1.png
-           :align:   center
-
-           Test PID with Kp=1.2, Ki=1, Kd=0.001 (test_pid.py)
-
+    def __init__(self, kp, ki, kd, set_point, controller_direction):
         """
-        error = self.SetPoint - feedback_value
-        if error < -180:
-            error += 360
-        elif error > 180:
-            error -= 360
-
-        self.current_time = time.time()
-        delta_time = self.current_time - self.last_time
-        delta_error = error - self.last_error
-
-        if (delta_time >= self.sample_time):
-            self.PTerm = self.Kp * error
-            self.ITerm += error * delta_time
-
-            if (self.ITerm < -self.windup_guard):
-                self.ITerm = -self.windup_guard
-            elif (self.ITerm > self.windup_guard):
-                self.ITerm = self.windup_guard
-
-            self.DTerm = 0.0
-            if delta_time > 0:
-                self.DTerm = delta_error / delta_time
-
-            # Remember last time and last error for next calculation
-            self.last_time = self.current_time
-            self.last_error = error
-
-            self.output = self.PTerm + (self.Ki * self.ITerm) + (self.Kd * self.DTerm)
-
-    def setKp(self, proportional_gain):
-        """Determines how aggressively the PID reacts to the current error with setting Proportional Gain"""
-        self.Kp = proportional_gain
-
-    def setKi(self, integral_gain):
-        """Determines how aggressively the PID reacts to the current error with setting Integral Gain"""
-        self.Ki = integral_gain
-
-    def setKd(self, derivative_gain):
-        """Determines how aggressively the PID reacts to the current error with setting Derivative Gain"""
-        self.Kd = derivative_gain
-
-    def setWindup(self, windup):
-        """Integral windup, also known as integrator windup or reset windup,
-        refers to the situation in a PID feedback controller where
-        a large change in setpoint occurs (say a positive change)
-        and the integral terms accumulates a significant error
-        during the rise (windup), thus overshooting and continuing
-        to increase as this accumulated error is unwound
-        (offset by errors in the other direction).
-        The specific problem is the excess overshooting.
+        The parameters specified here are those for for which we can't set up
+        reliable defaults, so we need to have the user set them.
+        :param kp: Proportional Tuning Parameter
+        :param ki: Integral Tuning Parameter
+        :param kd: Derivative Tuning Parameter
+        :param set_point: The value that we want the process to be.
+        :param controller_direction:
         """
-        self.windup_guard = windup
 
-    def setSampleTime(self, sample_time):
-        """PID that should be updated at a regular interval.
-        Based on a pre-determined sample time, the PID decides if it should compute or return immediately.
+        self.kp = kp
+        self.ki = ki
+        self.kd = kd
+        self.direction = controller_direction
+
+        self.i_term = 0
+
+        self.out_max = 0
+        self.out_min = 0
+
+        self.last_input = 0
+        self.output = 0
+        self.input = 0
+
+        self.set_point = set_point
+        self.mode = Mode.automatic
+
+        self.set_output_limits(-40, 40)
+        self.sample_time = 3000
+        self.controller_direction = Direction.direct
+        self.set_controller_direction(controller_direction)
+        self.set_tunings(self.kp, self.ki, self.kd)
+
+        self.last_time = self.now()
+
+    @staticmethod
+    def now():
         """
-        self.sample_time = sample_time
+        Static method to make it easy to obtain the current time
+        in milliseconds.
+        :return: Current time in milliseconds.
+        """
+        return int(round(time.time() * 1000))
+
+    def compute(self, input):
+        """
+        This, as they say, is where the magic happens. This function should
+        be called every time "void loop()" executes. The function will decide
+        for itself whether a new PID Output needs to be computed.
+        :param input: Input value for the PID controller.
+        :return: Returns true when the output is computed,
+        false when nothing has been done.
+        """
+
+        if self.mode is Mode.manual:
+            return 0, False
+
+        delta_time = self.now() - self.last_time
+
+        if delta_time >= self.sample_time:
+            error = self.set_point - input
+
+            self.i_term += (self.ki * error)
+
+            if self.i_term > self.out_max:
+                self.i_term = self.out_max
+            elif self.i_term < self.out_min:
+                self.i_term = self.out_min
+
+            delta_input = input - self.last_input
+
+            self.output = self.kp * error + self.i_term - self.kd * delta_input
+
+            if self.output > self.out_max:
+                self.output = self.out_max
+            elif self.output < self.out_min:
+                self.output = self.out_min
+
+            self.last_input = input
+            self.last_time = self.now()
+
+            return self.output, True
+        else:
+            return 0, False
+
+    def set_tunings(self, kp, ki, kd):
+        """
+        This function allows the controller's dynamic performance to be
+        adjusted. It's called automatically from the constructor,
+        but tunings can also be adjusted on the fly during normal operation.
+        :param kp: Proportional Tuning Parameter
+        :param ki: Integral Tuning Parameter
+        :param kd: Derivative Tuning Parameter
+        """
+
+        if kp < 0 or ki < 0 or ki < 0:
+            return
+
+        sample_time_in_sec = self.sample_time / 1000
+
+        self.kp = kp
+        self.ki = ki * sample_time_in_sec
+        self.kd = kd / sample_time_in_sec
+
+        if self.controller_direction is Direction.reverse:
+            self.kp = 0 - kp
+            self.ki = 0 - ki
+            self.kd = 0 - kd
+
+    def set_sample_time(self, sample_time):
+        """
+        Sets the period, in milliseconds, at which the calculation is
+        performed.
+        :param sample_time: The period, in milliseconds,
+        at which the calculation is performed.
+        """
+
+        if sample_time > 0:
+            ratio = sample_time / self.sample_time
+
+            self.ki *= ratio
+            self.kd /= ratio
+            self.sample_time = sample_time
+
+    def set_output_limits(self, min, max):
+        """
+        This function will be used far more often than set_input_limits. While
+        the input to the controller will generally be in the 0-1023 range
+        (which is the default already), the output will be a little different.
+        Maybe they'll be doing a time window and will need 0-8000 or something.
+        Or maybe they'll want to clamp it from 0-125.
+        :param min: Minimum output value from the PID controller
+        :param max: Maximum output value from the PID controller
+        """
+
+        if min >= max:
+            return
+
+        self.out_min = min
+        self.out_max = max
+
+        if self.mode == Mode.automatic:
+            if self.output > self.out_max:
+                self.output = self.out_max
+            elif self.output < self.out_min:
+                self.output = self.out_min
+
+            if self.i_term > self.out_max:
+                self.i_term = self.out_max
+            elif self.i_term < self.out_min:
+                self.i_term = self.out_min
+
+    def set_mode(self, mode):
+        """
+        Allows the controller Mode to be set to manual (0) or Automatic
+        (non-zero) when the transition from manual to auto occurs,
+        the controller is automatically initialized.
+        :param mode: The mode of the PID controller.
+        Can be either manual or automatic.
+        """
+
+        if self.mode is Mode.manual and mode is Mode.automatic:
+            self.initialize()
+
+        self.mode = mode
+
+    def initialize(self):
+        """
+        Does all the things that need to happen to ensure a smooth transfer
+        from manual to automatic mode.
+        """
+
+        self.i_term = self.output
+        self.last_input = self.input
+        if self.i_term > self.out_max:
+            self.i_term = self.out_max
+        elif self.i_term < self.out_min:
+            self.i_term = self.out_min
+
+    def set_controller_direction(self, direction):
+        """
+        The PID will either be connected to a DIRECT acting process
+        (+Output leads to +Input) or a REVERSE acting process
+        (+Output leads to -Input.). We need to know which one,
+        because otherwise we may increase the output when we should be
+        decreasing. This is called from the constructor.
+        :param direction: The direction of the PID controller.
+        """
+
+        if self.mode is Mode.automatic and direction is not self.direction:
+            self.kp = 0 - self.kp
+            self.ki = 0 - self.ki
+            self.kd = 0 - self.kd
+
+        self.direction = direction
+
+    def set_set_point(self, set_point):
+        self.set_point = set_point

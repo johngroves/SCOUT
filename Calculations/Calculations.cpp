@@ -6,7 +6,7 @@ float declinationAngle = 0.22;
 
 float Calculations::degreesBetween(float angleOne, float angleTwo) {
 /*
-    Calculates the shortest distance (in radians) between two headings (in degrees)
+    Calculates the shortest distance (in degrees) between two headings (in degrees)
 */
     float headingDelta = angleOne - angleTwo;
     if (headingDelta < 0) {
