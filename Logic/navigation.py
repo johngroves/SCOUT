@@ -9,6 +9,7 @@ import cmath, time
 import PyCmdMessenger, geo, geomag
 
 global c
+
 waypoints = [(37.526395, -122.258265)]
 
 pid = PID(1.0, 0.0, 0.0, 0, 1)
@@ -28,10 +29,9 @@ def setup():
     if ready is False:
         while ready is False:
             print("Waiting for GPS Connection")
-            time.sleep(22)
+            time.sleep(30)
             ready = startup()
     else:
-        print("Navigating!")
         return
 
 
@@ -88,7 +88,6 @@ def navigate ():
         if new:
             angle, side = scale(output)
             new_angle = turn_to(angle, side)
-        time.sleep(3)
 
 
 def cartesian_average (coords):
@@ -236,6 +235,5 @@ def get_telemetry():
     return data
 
 if __name__ == "__main__":
-    #setup()
-    #navigate()
-    print(degrees_between(355.0,5.0))
+    setup()
+    navigate()
