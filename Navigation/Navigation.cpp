@@ -19,12 +19,11 @@ Coordinate Navigation::getCurrentLocation()
     Coordinate coord;
     GPS.read();
     if (GPS.newNMEAreceived()) {
-        if (!GPS.parse(GPS.lastNMEA()))
-            ;
+        if (!GPS.parse(GPS.lastNMEA()));
     }
     if (GPS.fix) {
-        coord.latitude = GPS.lat;
-        coord.longitude = GPS.lon;
+        coord.latitude = GPS.latitudeDegrees;
+        coord.longitude = GPS.longitudeDegrees;
     } else {
         coord.latitude = 0.000;
         coord.longitude = 0.000;

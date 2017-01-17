@@ -74,6 +74,10 @@ class PID:
 
         """
         error = self.SetPoint - feedback_value
+        if error < -180:
+            error += 360
+        elif error > 180:
+            error -= 360
 
         self.current_time = time.time()
         delta_time = self.current_time - self.last_time

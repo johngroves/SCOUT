@@ -3,38 +3,66 @@
 # ------------------------------------------------------------------------------
 
 from math import radians, cos, sin, asin, sqrt, atan2
-import pid
+from collections import deque
+import pid, cmath, time
+from numpy import interp
 import PyCmdMessenger, geo, geomag
 
-waypoints = []
+global c
+waypoints = [(37.526395, -122.258265)]
 
 controller = pid.PID(P=0.2, I=0.0, D=0.0)
 controller.setSampleTime(5.0)
 controller.SetPoint = 100
 turn_to = controller.output
 
+
 def setup():
-    serial_port = "/dev/cu.usbmodem1421"
+    global c
+    serial_port = "/dev/cu.usbmodem1411"
     arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=10)
     commands = [["get_telemetry_data",""],
                 ["telemetry_data","ffcff"],
                 ["turn_to","fc"],
-                ["new_rudder_position","fc"],
+                ["new_rudder_positiaon","fc"],
                 ["error","s"]]
 
     c = PyCmdMessenger.CmdMessenger(arduino,commands)
+    ready = startup()
+    if ready is False:
+        while ready is False:
+            print("Waiting for GPS Connection")
+            time.sleep(22)
+            ready = startup()
+    else:
+        print("Navigating!")
+        return
+
+
+def startup():
+    status = get_telemetry()
+    if (int(status['latitude']) != 0 ):
+        waypoints.append((status['latitude'], status['latitude']))
+        return True
+    else:
+        return False
 
 
 def navigate ():
     """
     Main loop handling navigation.
     """
-    position_history = collections.deque([], maxlen=10)
-    heading_history = collections.deque([], maxlen=10)
+    print ("Startup done. Navigating.")
+    position_history = deque([], maxlen=10)
+    heading_history = deque([], maxlen=10)
 
     while True:
+
         # Get latest telemetry data
         tel_data = get_telemetry()
+
+        print (tel_data)
+
         heading = tel_data['boat_heading']
         rudder_angle = tel_data['rudder_angle']
         rudder_side = tel_data['rudder_side']
@@ -51,7 +79,7 @@ def navigate ():
         avg_heading = mean_heading(heading_history)
 
         # Calculate bearing to next waypoint
-        next_waypoint = waypoints[:-1]
+        next_waypoint = waypoints[-1]
         next_lat, next_lon = next_waypoint
         lat1, lon1 = avg_location
         bearing = get_bearing(lat1, lon1, next_lat, next_lon)
@@ -61,7 +89,14 @@ def navigate ():
         controller.update(avg_heading)
 
         # Turn
-        turn_to(controller.output)
+        raw_out = controller.output
+        print (controller.output)
+        print ("Raw output:",scale(raw_out))
+        angle,side = scale(raw_out)
+        new_angle = turn_to(angle, side)
+        print("New angle",new_angle)
+        time.sleep(3)
+
 
 
 def cartesian_average (coords):
@@ -81,15 +116,15 @@ def cartesian_average (coords):
         cart_y.append(Y)
         cart_z.append(Z)
 
-    avg_x = sum(cartX)/len(cartX)
-    avg_y = sum(cartY)/len(cartY)
-    avg_z = sum(cartZ)/len(cartZ)
+    avg_x = sum(cart_x)/len(cart_x)
+    avg_y = sum(cart_y)/len(cart_y)
+    avg_z = sum(cart_z)/len(cart_z)
 
-    hyp = math.sqrt(avg_x * avg_x + avg_y * avg_y)
+    hyp = sqrt(avg_x * avg_x + avg_y * avg_y)
     avg_lon = atan2(avg_y, avg_x)
     avg_lat = atan2(avg_z, hyp)
 
-    return tuple(avg_lat, avg_lon)
+    return (avg_lat, avg_lon)
 
 
 def mean_heading(headings):
@@ -98,7 +133,7 @@ def mean_heading(headings):
     :param headings:
     :return: average heading
     """
-    vectors = [cmath.rect(1, angle) for angle in list_of_angles]
+    vectors = [cmath.rect(1, angle) for angle in headings]
     vector_sum = sum(vectors)
 
     return cmath.phase(vector_sum)
@@ -173,6 +208,21 @@ def turn_to(angle,side):
     return data
 
 
+def scale(pid_output):
+    output = 0
+    if pid_output > 360:
+        output = 360
+    output = interp(output,[-360,360],[0,80])
+    output = output / 2.0
+    if output >= 40:
+        side = 'p'
+    else:
+        side = 's'
+    return output,side
+
+
+
+
 def get_telemetry():
     """
     Sends command to micro controller to get latest  telemetry data
@@ -187,16 +237,26 @@ def get_telemetry():
     """
     c.send("get_telemetry_data")
     msg = c.receive()
-    print(msg)
-    msg_data = msg[1]
-    data = {
-        "boat_heading": msg_data[0],
-        "rudder_angle": msg_data[1],
-        "rudder_side": msg_data[2],
-        "latitude": msg_data[3],
-        "longitude": msg_data[4]
-    }
+    print (msg)
+    try:
+        msg_data = msg[1]
+        data = {
+            "boat_heading": msg_data[0],
+            "rudder_angle": msg_data[1],
+            "rudder_side": msg_data[2],
+            "latitude": msg_data[3],
+            "longitude": msg_data[4]
+        }
+    except TypeError:
+        data = {
+            "boat_heading": 0,
+            "rudder_angle": 0,
+            "rudder_side": 0,
+            "latitude": 0,
+            "longitude": 0
+        }
     return data
 
-print (get_bearing(48.137222,11.575556,52.518611,13.408056))
-print (haversine(48.137222,11.575556,52.518611,13.408056))
+if __name__ == "__main__":
+    setup()
+    navigate()

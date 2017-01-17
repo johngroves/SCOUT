@@ -84,7 +84,7 @@ def test_pid(P = 0.2,  I = 0.0, D= 0.0, L=100):
     plt.plot(time_list, output_list,'-')
     plt.plot(time_list, setpoint_list)
     plt.xlim((0, L))
-    plt.ylim((min(feedback_list)-0.5, max(feedback_list)+0.5))
+    plt.ylim((min(feedback_list)-0.5, max(feedback_list)+200.5))
     plt.xlabel('time (s)')
     plt.ylabel('PID (PV)')
     plt.title('TEST PID')
