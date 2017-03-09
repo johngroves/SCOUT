@@ -6,8 +6,9 @@
 using namespace std;
 
 
-extern Adafruit_Simple_AHRS rudderCompass;
+
 extern Boat db1;
+extern double encoder;
 
 // i2C Address of Rudder Sensor
 int rudderAddr = 6;
@@ -19,12 +20,7 @@ int NEG2 = 47;
 
 
 float getCompass() {
-
-    sensors_vec_t   orientation;
-    Calculations::tcaselect(rudderAddr);
-    rudderCompass.getOrientation(&orientation);
-    float degs = orientation.heading;
-    return degs;
+    return encoder;
 }
 
 
@@ -114,14 +110,9 @@ rudderPosition Rudder::getAngle() {
 
     rudderPosition position;
     float rudderHeading = getCompass();
-    float boatHeading = db1.getHeading();
-    position.angle = Calculations::degreesBetween(boatHeading,rudderHeading);
+    position.angle = rudderHeading;
 
-    float rudderRads = Calculations::degreesToRadians(rudderHeading);
-    float boatRads = Calculations::degreesToRadians(boatHeading);
-    float direction = sin((boatRads - rudderRads));
-
-    if (direction > 0) {
+    if (rudderHeading >= 0) {
         position.direction = 's';
     } else {
         position.direction = 'p';
