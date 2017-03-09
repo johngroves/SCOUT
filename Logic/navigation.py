@@ -43,6 +43,11 @@ def startup():
     else:
         return False
 
+def turn_test():
+    #new_angle = turn_to(1,'s')
+    new_angle = 2
+    return new_angle
+
 
 def navigate ():
     """
@@ -87,7 +92,8 @@ def navigate ():
         # Turn
         if new:
             angle, side = scale(output)
-            new_angle = turn_to(angle, side)
+            #new_angle = turn_to(angle, side)
+        time.sleep(.1)
 
 
 def cartesian_average (coords):

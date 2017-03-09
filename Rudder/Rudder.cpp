@@ -1,11 +1,12 @@
-#include <Adafruit_HMC5883_U.h>
+#include <Adafruit_Simple_AHRS.h>
 #include "Arduino.h"
 #include "Calculations.h"
 #include "Rudder.h"
 #include "Boat.h"
 using namespace std;
 
-extern Adafruit_HMC5883_Unified rudderCompass;
+
+extern Adafruit_Simple_AHRS rudderCompass;
 extern Boat db1;
 
 // i2C Address of Rudder Sensor
@@ -19,10 +20,10 @@ int NEG2 = 47;
 
 float getCompass() {
 
-    sensors_event_t event;
+    sensors_vec_t   orientation;
     Calculations::tcaselect(rudderAddr);
-    rudderCompass.getEvent(&event);
-    float degs = Calculations::sensorToDegrees(event.magnetic.x, event.magnetic.y);
+    rudderCompass.getOrientation(&orientation);
+    float degs = orientation.heading;
     return degs;
 }
 
@@ -76,7 +77,6 @@ Rudder::Rudder() {
     pinMode(POS2, OUTPUT);
     pinMode(NEG2, OUTPUT);
 
-    //Serial.print("Rudder Initialized.");
     turnOff();
 }
 
@@ -115,7 +115,6 @@ rudderPosition Rudder::getAngle() {
     rudderPosition position;
     float rudderHeading = getCompass();
     float boatHeading = db1.getHeading();
-
     position.angle = Calculations::degreesBetween(boatHeading,rudderHeading);
 
     float rudderRads = Calculations::degreesToRadians(rudderHeading);
@@ -127,5 +126,6 @@ rudderPosition Rudder::getAngle() {
     } else {
         position.direction = 'p';
     }
+
     return position;
 }
