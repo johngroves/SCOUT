@@ -20,6 +20,8 @@ int NEG2 = 47;
 
 
 float getCompass() {
+    Serial.print("Encoder: ");
+    Serial.println(encoder);
     return encoder;
 }
 
@@ -49,22 +51,6 @@ void toStarboard() {
     digitalWrite(NEG2, HIGH);
 }
 
-void turnToSide(char side, bool same) {
-    if (side = 'p') {
-        if (same) {
-            toPort();
-        } else {
-            toStarboard();
-        }
-    } else {
-        if (same) {
-            toStarboard();
-        } else {
-            toPort();
-        }
-    }
-}
-
 Rudder::Rudder() {
 
     // Initialize Rudder Control Digital Pins
@@ -78,34 +64,37 @@ Rudder::Rudder() {
 
 rudderPosition Rudder::turnTo(float angle, char side) {
 
-    if (angle > 40.0)
-        angle = 40.0;
-    if (angle < -40.0)
-        angle = -40.0;
+    if (side == 'p') {
+        angle = angle * -1.0;
+    }
+
+    if (angle > 100.0) {
+        angle = 100.0;
+    }
+
+
+    if (angle < -100.0) {
+        angle = -100.0;
+    }
+
+
     float boatHeading = db1.getHeading();
     rudderPosition currentPosition = this->getAngle();
 
-    if ( side == currentPosition.direction ) {
+
         if ( angle > currentPosition.angle ) {
-            while (angle > currentPosition.angle && side == currentPosition.direction) {
-                turnToSide(side,true);
+            while (angle > currentPosition.angle) {
+                toPort();
                 currentPosition = this->getAngle();
             }
             turnOff();
         } else {
-            while (angle < currentPosition.angle && side == currentPosition.direction) {
-                turnToSide(side,false);
+            while (angle < currentPosition.angle) {
+                toStarboard();
                 currentPosition = this->getAngle();
             }
             turnOff();
         }
-    } else {
-            while (currentPosition.direction != side) {
-                turnToSide(side,false);
-                currentPosition = this->getAngle();
-            }
-            turnOff();
-    }
     return this->getAngle();
 }
 
@@ -116,9 +105,9 @@ rudderPosition Rudder::getAngle() {
     position.angle = rudderHeading;
 
     if (rudderHeading >= 0) {
-        position.direction = 's';
-    } else {
         position.direction = 'p';
+    } else {
+        position.direction = 's';
     }
 
     return position;

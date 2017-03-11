@@ -4,7 +4,7 @@
 
 
 import PyCmdMessenger
-arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1421",baud_rate=115200, timeout=10)
+arduino = PyCmdMessenger.ArduinoBoard("/dev/cu.usbmodem1411",baud_rate=115200, timeout=10)
 commands = [["get_telemetry_data",""],
             ["telemetry_data","ffcff"],
             ["turn_to","fc"],
