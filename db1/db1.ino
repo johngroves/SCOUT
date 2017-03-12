@@ -41,7 +41,7 @@ Boat db1 = Boat();
 
 const int encoder_a = 2; // Green - pin 2 - Digital
 const int encoder_b = 3; // White - pin 3 - Digital
-double encoder = 0.0;
+volatile double encoder = 0.0;
 
 
 CmdMessenger c = CmdMessenger(Serial,',',';','/');

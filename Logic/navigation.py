@@ -12,7 +12,7 @@ global c
 
 waypoints = [(37.526395, -122.258265)]
 
-pid = PID(1.0, 0.0, 0.0, 0, 1)
+pid = PID(0.8, 0.1, 0.1, 0, 1)
 
 def setup():
     global c

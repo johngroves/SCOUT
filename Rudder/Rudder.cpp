@@ -5,10 +5,8 @@
 #include "Boat.h"
 using namespace std;
 
-
-
 extern Boat db1;
-extern double encoder;
+extern volatile double encoder;
 
 // i2C Address of Rudder Sensor
 int rudderAddr = 6;
@@ -20,8 +18,6 @@ int NEG2 = 47;
 
 
 float getCompass() {
-    Serial.print("Encoder: ");
-    Serial.println(encoder);
     return encoder;
 }
 
@@ -68,29 +64,27 @@ rudderPosition Rudder::turnTo(float angle, char side) {
         angle = angle * -1.0;
     }
 
-    if (angle > 100.0) {
-        angle = 100.0;
+    if (angle > 60.0) {
+        angle = 60.0;
     }
 
 
-    if (angle < -100.0) {
-        angle = -100.0;
+    if (angle < -60.0) {
+        angle = -60.0;
     }
 
 
-    float boatHeading = db1.getHeading();
     rudderPosition currentPosition = this->getAngle();
 
-
         if ( angle > currentPosition.angle ) {
+            toPort();
             while (angle > currentPosition.angle) {
-                toPort();
                 currentPosition = this->getAngle();
             }
             turnOff();
         } else {
+            toStarboard();
             while (angle < currentPosition.angle) {
-                toStarboard();
                 currentPosition = this->getAngle();
             }
             turnOff();
@@ -109,6 +103,5 @@ rudderPosition Rudder::getAngle() {
     } else {
         position.direction = 's';
     }
-
     return position;
 }
