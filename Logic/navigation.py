@@ -12,7 +12,7 @@ global c
 
 waypoints = [(37.526395, -122.258265)]
 
-pid = PID(1.0, 0.0, 0.0, 0, 1)
+pid = PID(0.8, 0.1, 0.1, 0, 1)
 
 def setup():
     global c
@@ -42,6 +42,10 @@ def startup():
         return True
     else:
         return False
+
+def turn_test():
+    new_angle = turn_to(1,'s')
+    return new_angle
 
 
 def navigate ():
@@ -88,6 +92,7 @@ def navigate ():
         if new:
             angle, side = scale(output)
             new_angle = turn_to(angle, side)
+        time.sleep(.1)
 
 
 def cartesian_average (coords):

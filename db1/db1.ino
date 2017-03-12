@@ -1,9 +1,12 @@
+#include <Adafruit_Sensor_Set.h>
+#include <Adafruit_Simple_AHRS.h>
+#include <Adafruit_LSM9DS0.h>
 #include <Boat.h>
 #include <Rudder.h>
 #include <Navigation.h>
 #include <Calculations.h>
 #include <Adafruit_GPS.h>
-#include <Adafruit_HMC5883_U.h>
+
 #include <Adafruit_Sensor.h>
 #include <SoftwareSerial.h>
 #include <CmdMessenger.h>
@@ -27,13 +30,19 @@ void tcaselect(uint8_t i) {
   Wire.endTransmission();
 }
 
+
 Adafruit_GPS GPS(&Serial3);
 HardwareSerial mySerial = Serial3;
 
-Adafruit_HMC5883_Unified rudderCompass = Adafruit_HMC5883_Unified(1);
-Adafruit_HMC5883_Unified boatCompass = Adafruit_HMC5883_Unified(2);
+Adafruit_LSM9DS0  blsm(2000);
+Adafruit_Simple_AHRS boatCompass (&blsm.getAccel(), &blsm.getMag());
 
 Boat db1 = Boat();
+
+const int encoder_a = 2; // Green - pin 2 - Digital
+const int encoder_b = 3; // White - pin 3 - Digital
+volatile double encoder = 0.0;
+
 
 CmdMessenger c = CmdMessenger(Serial,',',';','/');
 
@@ -98,31 +107,44 @@ void setup() {
     //Serial.println("ATmega1280 Started. Serial Comms Succesful.");
 
     // Initialize Magnetometer
-    tcaselect(6);
-    if(!rudderCompass.begin())
-    {
-        //Serial.println("Error: Rudder Sensor Did Not Initialize.");
-        while(1);
-    }
     tcaselect(7);
-    if(!boatCompass.begin())
+    if(!blsm.begin())
     {
-        //Serial.println("Error: Rudder Sensor Did Not Initialize.");
-        while(1);
-    }
+        //Serial.println("Error: Rudder Sensor Did Not Initialize.");        
+    }      
+    configureBoatAccel();
 
+    // Encoder
+    pinMode(encoder_a, INPUT_PULLUP);
+    pinMode(encoder_b, INPUT_PULLUP);    
+    attachInterrupt(0, encoderPinChangeA, CHANGE);
+    attachInterrupt(1, encoderPinChangeB, CHANGE);
+
+}
+
+void configureBoatAccel(void)
+{  
+  blsm.setupAccel(blsm.LSM9DS0_ACCELRANGE_2G);  
+  blsm.setupMag(blsm.LSM9DS0_MAGGAIN_8GAUSS);  
+  blsm.setupGyro(blsm.LSM9DS0_GYROSCALE_2000DPS);
 }
 
 void loop() {
   GPS.read();
   if (GPS.newNMEAreceived()) {
-        if (!GPS.parse(GPS.lastNMEA()))  
-          return;  
+        if (!GPS.parse(GPS.lastNMEA()))
+          return;
   }
   c.feedinSerialData();
 
 }
 
+void encoderPinChangeA() {
+encoder += digitalRead(encoder_a) == digitalRead(encoder_b) ? 0.15 : -0.15;
+}
 
+void encoderPinChangeB() {
+encoder += digitalRead(encoder_a) != digitalRead(encoder_b) ? 0.15 : -0.15;
+}
 
 

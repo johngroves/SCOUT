@@ -1,5 +1,5 @@
 #include <Adafruit_Sensor.h>
-#include <Adafruit_HMC5883_U.h>
+#include <Adafruit_Simple_AHRS.h>
 #include <SoftwareSerial.h>
 #include "Arduino.h"
 #include "Calculations.h"
@@ -7,7 +7,8 @@
 #include "Navigation.h"
 #include "Boat.h"
 
-extern Adafruit_HMC5883_Unified boatCompass;
+extern Adafruit_Simple_AHRS  boatCompass;
+
 int boatAddr = 7;
 
 Boat::Boat()
@@ -22,9 +23,12 @@ Boat::~Boat()
 }
 float Boat::getHeading()
 {
-    sensors_event_t event;
+    sensors_vec_t   orientation;
     Calculations::tcaselect(boatAddr);
-    boatCompass.getEvent(&event);
-    float degs = Calculations::sensorToDegrees(event.magnetic.x, event.magnetic.y);
+    boatCompass.getOrientation(&orientation);
+    float degs = orientation.heading;
+    if(degs <0){
+        degs+=360;
+    }
     return degs;
 }

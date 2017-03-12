@@ -1,12 +1,12 @@
-#include <Adafruit_HMC5883_U.h>
+#include <Adafruit_Simple_AHRS.h>
 #include "Arduino.h"
 #include "Calculations.h"
 #include "Rudder.h"
 #include "Boat.h"
 using namespace std;
 
-extern Adafruit_HMC5883_Unified rudderCompass;
 extern Boat db1;
+extern volatile double encoder;
 
 // i2C Address of Rudder Sensor
 int rudderAddr = 6;
@@ -18,12 +18,7 @@ int NEG2 = 47;
 
 
 float getCompass() {
-
-    sensors_event_t event;
-    Calculations::tcaselect(rudderAddr);
-    rudderCompass.getEvent(&event);
-    float degs = Calculations::sensorToDegrees(event.magnetic.x, event.magnetic.y);
-    return degs;
+    return encoder;
 }
 
 
@@ -52,22 +47,6 @@ void toStarboard() {
     digitalWrite(NEG2, HIGH);
 }
 
-void turnToSide(char side, bool same) {
-    if (side = 'p') {
-        if (same) {
-            toPort();
-        } else {
-            toStarboard();
-        }
-    } else {
-        if (same) {
-            toStarboard();
-        } else {
-            toPort();
-        }
-    }
-}
-
 Rudder::Rudder() {
 
     // Initialize Rudder Control Digital Pins
@@ -76,37 +55,40 @@ Rudder::Rudder() {
     pinMode(POS2, OUTPUT);
     pinMode(NEG2, OUTPUT);
 
-    //Serial.print("Rudder Initialized.");
     turnOff();
 }
 
 rudderPosition Rudder::turnTo(float angle, char side) {
 
-    if (angle > 40)
-        angle = 40;
-    float boatHeading = db1.getHeading();
+    if (side == 'p') {
+        angle = angle * -1.0;
+    }
+
+    if (angle > 60.0) {
+        angle = 60.0;
+    }
+
+
+    if (angle < -60.0) {
+        angle = -60.0;
+    }
+
+
     rudderPosition currentPosition = this->getAngle();
-    if ( side == currentPosition.direction ) {
+
         if ( angle > currentPosition.angle ) {
-            while (angle > currentPosition.angle && side == currentPosition.direction) {
-                turnToSide(side,true);
+            toPort();
+            while (angle > currentPosition.angle) {
                 currentPosition = this->getAngle();
             }
             turnOff();
         } else {
-            while (angle < currentPosition.angle && side == currentPosition.direction) {
-                turnToSide(side,false);
+            toStarboard();
+            while (angle < currentPosition.angle) {
                 currentPosition = this->getAngle();
             }
             turnOff();
         }
-    } else {
-            while (currentPosition.direction != side) {
-                turnToSide(side,false);
-                currentPosition = this->getAngle();
-            }
-            turnOff();
-    }
     return this->getAngle();
 }
 
@@ -114,18 +96,12 @@ rudderPosition Rudder::getAngle() {
 
     rudderPosition position;
     float rudderHeading = getCompass();
-    float boatHeading = db1.getHeading();
+    position.angle = rudderHeading;
 
-    position.angle = Calculations::degreesBetween(boatHeading,rudderHeading);
-
-    float rudderRads = Calculations::degreesToRadians(rudderHeading);
-    float boatRads = Calculations::degreesToRadians(boatHeading);
-    float direction = sin((boatRads - rudderRads));
-
-    if (direction > 0) {
-        position.direction = 's';
-    } else {
+    if (rudderHeading >= 0) {
         position.direction = 'p';
+    } else {
+        position.direction = 's';
     }
     return position;
 }
