@@ -12,7 +12,7 @@ global c
 
 waypoints = [(37.526395, -122.258265)]
 
-pid = PID(0.8, 0.1, 0.1, 0, 1)
+pid = PID(.8, 0.1, 0.1, 0, 1)
 
 def setup():
     global c
@@ -25,6 +25,8 @@ def setup():
                 ["error","s"]]
 
     c = PyCmdMessenger.CmdMessenger(arduino,commands)
+    printable = turn_test()
+    print(printable)
     ready = startup()
     if ready is False:
         while ready is False:
@@ -44,7 +46,11 @@ def startup():
         return False
 
 def turn_test():
-    new_angle = turn_to(1,'s')
+    new_angle = turn_to(20,'p')
+    time.sleep(2)
+    new_angle = turn_to(20,'p')
+    time.sleep(2)
+    new_angle = turn_to(1,'p')
     return new_angle
 
 
@@ -61,7 +67,7 @@ def navigate ():
         # Get latest telemetry data
         tel_data = get_telemetry()
 
-        print (tel_data)
+        #print (tel_data)
 
         heading = tel_data['boat_heading']
         rudder_angle = tel_data['rudder_angle']
@@ -86,7 +92,7 @@ def navigate ():
         error = degrees_between(avg_heading,bearing)
 
         # PID
-        new, output = pid.compute(error)
+        output, new = pid.compute(error)
 
         # Turn
         if new:
@@ -129,10 +135,9 @@ def mean_heading(headings):
     :param headings:
     :return: average heading
     """
-    vectors = [cmath.rect(1, angle) for angle in headings]
+    vectors = [cmath.rect(1, radians(angle)) for angle in headings]
     vector_sum = sum(vectors)
-
-    return cmath.phase(vector_sum)
+    return degrees(cmath.phase(vector_sum))
 
 
 def haversine(lat1, lon1, lat2, lon2):
@@ -219,7 +224,6 @@ def get_telemetry():
     """
     c.send("get_telemetry_data")
     msg = c.receive()
-    print (msg)
     try:
         msg_data = msg[1]
         data = {

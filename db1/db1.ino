@@ -135,16 +135,15 @@ void loop() {
         if (!GPS.parse(GPS.lastNMEA()))
           return;
   }
-  c.feedinSerialData();
-
+  c.feedinSerialData();  
 }
 
 void encoderPinChangeA() {
-encoder += digitalRead(encoder_a) == digitalRead(encoder_b) ? 0.15 : -0.15;
+encoder += digitalRead(encoder_a) == digitalRead(encoder_b) ? 0.15 : -0.17;
 }
 
 void encoderPinChangeB() {
-encoder += digitalRead(encoder_a) != digitalRead(encoder_b) ? 0.15 : -0.15;
+encoder += digitalRead(encoder_a) != digitalRead(encoder_b) ? 0.15 : -0.17;
 }
 
 

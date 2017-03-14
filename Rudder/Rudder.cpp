@@ -62,33 +62,33 @@ rudderPosition Rudder::turnTo(float angle, char side) {
 
     if (side == 'p') {
         angle = angle * -1.0;
+    } else {
+        angle = angle * 1.0;
     }
 
-    if (angle > 60.0) {
-        angle = 60.0;
-    }
-
-
-    if (angle < -60.0) {
-        angle = -60.0;
+    if (angle > 30.0) {
+        angle = 30.0;
     }
 
 
-    rudderPosition currentPosition = this->getAngle();
+    if (angle < -30.0) {
+        angle = -30.0;
+    }
 
+
+     rudderPosition currentPosition = this->getAngle();
         if ( angle > currentPosition.angle ) {
-            toPort();
+            toStarboard();
             while (angle > currentPosition.angle) {
                 currentPosition = this->getAngle();
             }
-            turnOff();
         } else {
-            toStarboard();
+            toPort();
             while (angle < currentPosition.angle) {
                 currentPosition = this->getAngle();
             }
-            turnOff();
         }
+    turnOff();
     return this->getAngle();
 }
 
