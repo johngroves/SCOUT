@@ -135,10 +135,9 @@ def mean_heading(headings):
     :param headings:
     :return: average heading
     """
-    vectors = [cmath.rect(1, angle) for angle in headings]
+    vectors = [cmath.rect(1, radians(angle)) for angle in headings]
     vector_sum = sum(vectors)
-    print("Headings:",headings)
-    return cmath.phase(vector_sum)
+    return degrees(cmath.phase(vector_sum))
 
 
 def haversine(lat1, lon1, lat2, lon2):
