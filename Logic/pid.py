@@ -48,8 +48,8 @@ class PID(object):
         self.set_point = set_point
         self.mode = Mode.automatic
 
-        self.set_output_limits(-40, 40)
-        self.sample_time = 1000
+        self.set_output_limits(-80, 40)
+        self.sample_time = 3000
         self.controller_direction = Direction.direct
         self.set_controller_direction(controller_direction)
         self.set_tunings(self.kp, self.ki, self.kd)
