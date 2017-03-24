@@ -71,8 +71,8 @@ rudderPosition Rudder::turnTo(float angle, char side) {
     }
 
 
-    if (angle < -30.0) {
-        angle = -30.0;
+    if (angle < -80.0) {
+        angle = -80.0;
     }
 
 

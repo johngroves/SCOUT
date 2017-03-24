@@ -10,13 +10,13 @@ import PyCmdMessenger, geo, geomag
 
 global c
 
-waypoints = [(37.526395, -122.258265)]
+waypoints = [(37.526660, -122.256305)]
 
-pid = PID(.8, 0.1, 0.1, 0, 1)
+pid = PID(.9, 0.4, 0.5, 0, 1)
 
 def setup():
     global c
-    serial_port = "/dev/cu.usbmodem1411"
+    serial_port = "/dev/cu.usbmodem1421"
     arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=10)
     commands = [["get_telemetry_data",""],
                 ["telemetry_data","ffcff"],
@@ -31,7 +31,7 @@ def setup():
     if ready is False:
         while ready is False:
             print("Waiting for GPS Connection")
-            time.sleep(30)
+            time.sleep(15)
             ready = startup()
     else:
         return
@@ -67,7 +67,7 @@ def navigate ():
         # Get latest telemetry data
         tel_data = get_telemetry()
 
-        #print (tel_data)
+        print (tel_data)
 
         heading = tel_data['boat_heading']
         rudder_angle = tel_data['rudder_angle']

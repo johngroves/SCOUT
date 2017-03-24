@@ -139,11 +139,12 @@ void loop() {
 }
 
 void encoderPinChangeA() {
-encoder += digitalRead(encoder_a) == digitalRead(encoder_b) ? 0.15 : -0.17;
+encoder += digitalRead(encoder_a) == digitalRead(encoder_b) ? 0.15 : -0.15;
 }
 
 void encoderPinChangeB() {
-encoder += digitalRead(encoder_a) != digitalRead(encoder_b) ? 0.15 : -0.17;
+encoder += digitalRead(encoder_a) != digitalRead(encoder_b) ? 0.15 : -0.15;
 }
+
 
 
