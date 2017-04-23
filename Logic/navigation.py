@@ -12,7 +12,7 @@ global c
 
 waypoints = [(37.526660, -122.256305)]
 
-pid = PID(.9, 0.4, 0.5, 0, 1)
+pid = PID(0.2, 0.0, 0.0, 0, 1)
 
 def setup():
     global c
@@ -62,6 +62,8 @@ def navigate ():
     position_history = deque([], maxlen=10)
     heading_history = deque([], maxlen=10)
 
+    use_avg = False
+
     while True:
 
         # Get latest telemetry data
@@ -82,12 +84,18 @@ def navigate ():
 
         # Gather center location, heading
         avg_location = cartesian_average(position_history)
-        avg_heading = mean_heading(heading_history)
 
         # Calculate bearing to next waypoint
         next_waypoint = waypoints[-1]
         next_lat, next_lon = next_waypoint
-        lat1, lon1 = avg_location
+
+        if use_avg:
+            avg_heading = mean_heading(heading_history)
+            lat1, lon1 = avg_location
+        else:
+            avg_heading = heading
+            lat1, lon1 = location_tuple
+
         bearing = get_bearing(lat1, lon1, next_lat, next_lon)
         error = degrees_between(avg_heading,bearing)
 
@@ -98,7 +106,7 @@ def navigate ():
         if new:
             angle, side = scale(output)
             new_angle = turn_to(angle, side)
-        time.sleep(.1)
+        time.sleep(.1) # Can't remember why this made sense?
 
 
 def cartesian_average (coords):
