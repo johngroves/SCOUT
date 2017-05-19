@@ -58,7 +58,7 @@ Rudder::Rudder() {
     turnOff();
 }
 
-rudderPosition Rudder::turnTo(float angle, char side) {
+void Rudder::turnTo(float angle, char side) {
 
     if (side == 'p') {
         angle = angle * -1.0;
@@ -89,7 +89,6 @@ rudderPosition Rudder::turnTo(float angle, char side) {
             }
         }
     turnOff();
-    return this->getAngle();
 }
 
 rudderPosition Rudder::getAngle() {

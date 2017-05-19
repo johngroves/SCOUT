@@ -20,7 +20,7 @@ class Rudder
   public:
     Rudder();
     rudderPosition getAngle();
-    rudderPosition turnTo(float angle, char side);
+    void turnTo(float angle, char side);
 };
 
 #endif

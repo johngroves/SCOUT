@@ -45,12 +45,14 @@ def startup():
     else:
         return False
 
+
 def turn_test():
-    new_angle = turn_to(20,'p')
+
+    new_angle = turn_to(30,'s')
     time.sleep(2)
-    new_angle = turn_to(20,'p')
+    new_angle = turn_to(30,'p')
     time.sleep(2)
-    new_angle = turn_to(1,'p')
+
     return new_angle
 
 

@@ -71,12 +71,13 @@ void onTurnCommand(void){
     char desiredSide = c.readBinArg<char>();
 
     // Turn rudder
-    rudderPosition newPosition = db1.rudder->turnTo(desiredAngle,desiredSide);
+    db1.rudder->turnTo(desiredAngle,desiredSide);
+    rudderPosition rudderPos = db1.rudder->getAngle();
 
     // Return new position
     c.sendCmdStart(new_rudder_position);
-    c.sendCmdBinArg(newPosition.angle);
-    c.sendCmdBinArg(newPosition.direction);
+    c.sendCmdBinArg(encoder);
+    c.sendCmdBinArg(rudderPos.direction);
     c.sendCmdEnd();
 }
 
