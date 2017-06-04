@@ -6,6 +6,7 @@
 #include <Navigation.h>
 #include <Calculations.h>
 #include <Adafruit_GPS.h>
+#include <RotaryEncoder.h>
 
 #include <Adafruit_Sensor.h>
 #include <SoftwareSerial.h>
@@ -41,8 +42,11 @@ Boat db1 = Boat();
 
 const int encoder_a = 2; // Green - pin 2 - Digital
 const int encoder_b = 3; // White - pin 3 - Digital
-volatile double encoder = 0.0;
+RotaryEncoder rudderEncoder(encoder_a, encoder_b);
+int encoder = 0;
 
+rudderPosition desired;
+rudderPosition starting;
 
 CmdMessenger c = CmdMessenger(Serial,',',';','/');
 
@@ -70,15 +74,51 @@ void onTurnCommand(void){
     float desiredAngle = c.readBinArg<float>();
     char desiredSide = c.readBinArg<char>();
 
-    // Turn rudder
-    db1.rudder->turnTo(desiredAngle,desiredSide);
     rudderPosition rudderPos = db1.rudder->getAngle();
 
-    // Return new position
-    c.sendCmdStart(new_rudder_position);
-    c.sendCmdBinArg(encoder);
-    c.sendCmdBinArg(rudderPos.direction);
-    c.sendCmdEnd();
+    if (desired.direction == 'p') {
+        desired.angle = desiredAngle * -1.0;
+    } else {
+        desired.angle = desiredAngle * 1.0;
+    }
+    if (desired.angle > 40.0) {
+        desired.angle = 40.0;
+    }
+    if (desired.angle < -40.0) {
+        desired.angle = -40.0;
+    }
+    
+    starting = rudderPos;     
+    desired.direction = desiredSide;
+
+    // Turn rudder
+    db1.rudder->turnTo(desiredAngle,desiredSide);    
+}
+
+void sendPosition(rudderPosition pos){
+      c.sendCmdStart(new_rudder_position);
+      c.sendCmdBinArg(pos.angle);
+      c.sendCmdBinArg(pos.direction);
+      c.sendCmdEnd();
+}    
+
+void checkRudder() {
+  // If motor is turning, check to see if reached correct position
+  if (db1.rudder->getStatus()) {
+    rudderPosition rudderPos = db1.rudder->getAngle();
+            
+    if ( desired.angle  > starting.angle ) {
+       if ( desired.angle >= rudderPos.angle) {
+        sendPosition(db1.rudder->turnOff());
+       }
+    } else {
+      if (desired.angle <= rudderPos.angle) {
+        sendPosition(db1.rudder->turnOff());
+      }
+    }
+
+  }
+         
 }
 
 void on_unknown_command(void){
@@ -113,13 +153,7 @@ void setup() {
     {
         //Serial.println("Error: Rudder Sensor Did Not Initialize.");        
     }      
-    configureBoatAccel();
-
-    // Encoder
-    pinMode(encoder_a, INPUT_PULLUP);
-    pinMode(encoder_b, INPUT_PULLUP);    
-    attachInterrupt(0, encoderPinChangeA, CHANGE);
-    attachInterrupt(1, encoderPinChangeB, CHANGE);
+    configureBoatAccel();    
 
 }
 
@@ -131,20 +165,22 @@ void configureBoatAccel(void)
 }
 
 void loop() {
+  static int pos = 0;  
+  rudderEncoder.tick();
+  int newPos = rudderEncoder.getPosition();
+  
+  if (pos != newPos) {    
+    pos = newPos;
+  }
+  
+  checkRudder();
+  
   GPS.read();
   if (GPS.newNMEAreceived()) {
         if (!GPS.parse(GPS.lastNMEA()))
           return;
   }
   c.feedinSerialData();  
-}
-
-void encoderPinChangeA() {
-encoder += digitalRead(encoder_a) == digitalRead(encoder_b) ? 0.15 : -0.15;
-}
-
-void encoderPinChangeB() {
-encoder += digitalRead(encoder_a) != digitalRead(encoder_b) ? 0.15 : -0.15;
 }
 
 

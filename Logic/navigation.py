@@ -21,7 +21,7 @@ def setup():
     commands = [["get_telemetry_data",""],
                 ["telemetry_data","ffcff"],
                 ["turn_to","fc"],
-                ["new_rudder_positiaon","fc"],
+                ["new_rudder_position","fc"],
                 ["error","s"]]
 
     c = PyCmdMessenger.CmdMessenger(arduino,commands)
@@ -47,13 +47,10 @@ def startup():
 
 
 def turn_test():
-
-    new_angle = turn_to(30,'s')
-    time.sleep(2)
-    new_angle = turn_to(30,'p')
-    time.sleep(2)
-
-    return new_angle
+    turn_to(40,'s')
+    time.sleep(10)
+    turn_to(40,'p')
+    return
 
 
 def navigate ():
@@ -107,7 +104,8 @@ def navigate ():
         # Turn
         if new:
             angle, side = scale(output)
-            new_angle = turn_to(angle, side)
+            turn_to(angle, side)
+
         time.sleep(.1) # Can't remember why this made sense?
 
 
