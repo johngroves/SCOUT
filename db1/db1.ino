@@ -75,6 +75,7 @@ void onTurnCommand(void){
     char desiredSide = c.readBinArg<char>();
 
     rudderPosition rudderPos = db1.rudder->getAngle();
+    desired.direction = desiredSide;
 
     if (desired.direction == 'p') {
         desired.angle = desiredAngle * -1.0;
@@ -87,9 +88,8 @@ void onTurnCommand(void){
     if (desired.angle < -40.0) {
         desired.angle = -40.0;
     }
-    
-    starting = rudderPos;     
-    desired.direction = desiredSide;
+     
+     starting = rudderPos;         
 
     // Turn rudder
     db1.rudder->turnTo(desiredAngle,desiredSide);    
@@ -105,20 +105,23 @@ void sendPosition(rudderPosition pos){
 void checkRudder() {
   // If motor is turning, check to see if reached correct position
   if (db1.rudder->getStatus()) {
-    rudderPosition rudderPos = db1.rudder->getAngle();
-            
-    if ( desired.angle  > starting.angle ) {
-       if ( desired.angle >= rudderPos.angle) {
+    
+    rudderPosition rudderPos = db1.rudder->getAngle();    
+    // If you want to turn to a greater angle
+    if ( desired.angle  > starting.angle ) {                
+       // if you've met or passed the desired angle
+       if ( rudderPos.angle >= desired.angle) {
         sendPosition(db1.rudder->turnOff());
        }
-    } else {
-      if (desired.angle <= rudderPos.angle) {
+    } 
+    // If you want to turn to a lesser angle
+    if ( desired.angle < starting.angle) {      
+      // if you've met or passed the desired angle
+      if ( rudderPos.angle <= desired.angle) {
         sendPosition(db1.rudder->turnOff());
-      }
+      }      
     }
-
-  }
-         
+  }        
 }
 
 void on_unknown_command(void){
@@ -169,18 +172,18 @@ void loop() {
   rudderEncoder.tick();
   int newPos = rudderEncoder.getPosition();
   
-  if (pos != newPos) {    
-    pos = newPos;
+  if (pos != newPos) {           
+    pos = newPos;    
+    encoder = newPos;
   }
-  
-  checkRudder();
-  
+     
   GPS.read();
   if (GPS.newNMEAreceived()) {
         if (!GPS.parse(GPS.lastNMEA()))
           return;
-  }
-  c.feedinSerialData();  
+  }  
+  c.feedinSerialData();    
+  checkRudder();
 }
 
 

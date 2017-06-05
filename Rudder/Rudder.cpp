@@ -59,7 +59,7 @@ Rudder::Rudder() {
     pinMode(POS2, OUTPUT);
     pinMode(NEG2, OUTPUT);
 
-    turnOff();
+    motorOff();
 }
 
 void Rudder::turnTo(float angle, char side) {
@@ -82,8 +82,8 @@ void Rudder::turnTo(float angle, char side) {
     rudderPosition currentPosition = this->getAngle();
 
     if ( angle > currentPosition.angle ) {
-        turning = true;
         toStarboard();
+        turning = true;
     }
 
     if (angle < currentPosition.angle) {
@@ -106,9 +106,9 @@ rudderPosition Rudder::getAngle() {
     position.angle = rudderHeading;
 
     if (rudderHeading >= 0) {
-        position.direction = 'p';
-    } else {
         position.direction = 's';
+    } else {
+        position.direction = 'p';
     }
     return position;
 }

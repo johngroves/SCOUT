@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------
 # Control Arduino With Python Via Serial
 # ------------------------------------------------------------------------------
-
+import asyncio
 from math import radians, cos, sin, asin, sqrt, atan2, degrees
 from collections import deque
 from pid import PID
@@ -10,14 +10,14 @@ import PyCmdMessenger, geo, geomag
 
 global c
 
-waypoints = [(37.526660, -122.256305)]
+waypoints = [(37.526957, -122.260743)]
 
 pid = PID(0.2, 0.0, 0.0, 0, 1)
 
 def setup():
     global c
     serial_port = "/dev/cu.usbmodem1421"
-    arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=10)
+    arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=20)
     commands = [["get_telemetry_data",""],
                 ["telemetry_data","ffcff"],
                 ["turn_to","fc"],
@@ -25,8 +25,7 @@ def setup():
                 ["error","s"]]
 
     c = PyCmdMessenger.CmdMessenger(arduino,commands)
-    printable = turn_test()
-    print(printable)
+    print(turn_test())
     ready = startup()
     if ready is False:
         while ready is False:
@@ -47,10 +46,15 @@ def startup():
 
 
 def turn_test():
-    turn_to(40,'s')
-    time.sleep(10)
-    turn_to(40,'p')
-    return
+    new = turn_to(40, 'p')
+    time.sleep(2)
+    new = turn_to(0, 's')
+    time.sleep(2)
+    new = turn_to(40,'s')
+    time.sleep(2)
+    new = turn_to(0, 's')
+    time.sleep(2)
+    return "Rudder calibration completed."
 
 
 def navigate ():
