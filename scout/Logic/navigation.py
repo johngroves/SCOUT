@@ -1,32 +1,42 @@
 # ------------------------------------------------------------------------------
 # Control Arduino With Python Via Serial
 # ------------------------------------------------------------------------------
-
+import asyncio
 from math import radians, cos, sin, asin, sqrt, atan2, degrees
 from collections import deque
-from pid import PID
+from .pid import PID
+from .geo import *
 import cmath, time
-import PyCmdMessenger, geo, geomag
+import PyCmdMessenger, geomag
 
 global c
 
-waypoints = [(37.526660, -122.256305)]
+waypoints = [
+    (37.527475, -122.256993),
+    (37.528414, -122.258465),   # HQ DOCK
+    (37.5273881,-122.260400),   # Off Equinix
+    (37.5259012,-122.2604400),  # Back Channel Top North
+    (37.523426,-122.2627522),   # Back Channel Bottom Center
+    (37.527019, -122.25898),    # Lagoon Center
+    (37.527475, -122.256993)    # AJ Dock
+]
 
-pid = PID(.9, 0.4, 0.5, 0, 1)
+
+
+pid = PID(0.2, 0.0, 0.1, 0, 1)
 
 def setup():
     global c
     serial_port = "/dev/cu.usbmodem1421"
-    arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=10)
+    arduino = PyCmdMessenger.ArduinoBoard(serial_port, baud_rate=115200, timeout=20)
     commands = [["get_telemetry_data",""],
                 ["telemetry_data","ffcff"],
                 ["turn_to","fc"],
-                ["new_rudder_positiaon","fc"],
+                ["new_rudder_position","fc"],
                 ["error","s"]]
 
     c = PyCmdMessenger.CmdMessenger(arduino,commands)
-    printable = turn_test()
-    print(printable)
+    print(turn_test())
     ready = startup()
     if ready is False:
         while ready is False:
@@ -45,13 +55,9 @@ def startup():
     else:
         return False
 
+
 def turn_test():
-    new_angle = turn_to(20,'p')
-    time.sleep(2)
-    new_angle = turn_to(20,'p')
-    time.sleep(2)
-    new_angle = turn_to(1,'p')
-    return new_angle
+    return "Rudder calibration completed."
 
 
 def navigate ():
@@ -61,13 +67,16 @@ def navigate ():
     print ("Startup done. Navigating.")
     position_history = deque([], maxlen=10)
     heading_history = deque([], maxlen=10)
+    next_waypoint = waypoints.pop(0)
+    CLOSENESS = 30
+    use_avg = False
 
     while True:
 
         # Get latest telemetry data
         tel_data = get_telemetry()
 
-        print (tel_data)
+        print(tel_data)
 
         heading = tel_data['boat_heading']
         rudder_angle = tel_data['rudder_angle']
@@ -81,52 +90,64 @@ def navigate ():
         heading_history.append(heading)
 
         # Gather center location, heading
-        avg_location = cartesian_average(position_history)
-        avg_heading = mean_heading(heading_history)
+        avg_location = center_geolocation(position_history)
 
         # Calculate bearing to next waypoint
-        next_waypoint = waypoints[-1]
+        distance_m = distance(location_tuple,next_waypoint)
+        if distance_m < CLOSENESS:
+            print("Reached Waypoint: ", next_waypoint)
+            next_waypoint = waypoints.pop(0)
         next_lat, next_lon = next_waypoint
-        lat1, lon1 = avg_location
+        if use_avg:
+            avg_heading = mean_heading(heading_history)
+            lat1, lon1 = avg_location
+        else:
+            avg_heading = heading
+            lat1, lon1 = location_tuple
         bearing = get_bearing(lat1, lon1, next_lat, next_lon)
         error = degrees_between(avg_heading,bearing)
-
+        print("Heading: ", avg_heading)
+        print("Bearing: ", bearing)
+        print("Error: ", error)
+        print("Distance", distance_m)
+        print("Next WP:", next_waypoint)
         # PID
         output, new = pid.compute(error)
 
         # Turn
         if new:
             angle, side = scale(output)
-            new_angle = turn_to(angle, side)
-        time.sleep(.1)
+            turn_to(angle, side)
+
+        time.sleep(.1) # Can't remember why this made sense?
 
 
-def cartesian_average (coords):
+def center_geolocation(geolocations):
     """
-    Finds the cartesian center of a list of coordinate tuples
-    :param a list of coordinate tuples
-    :return: center of coordinates
+    Provide a relatively accurate center lat, lon returned as a list pair, given
+    a list of list pairs.
+    ex: in: geolocations = ((lat1,lon1), (lat2,lon2),)
+        out: (center_lat, center_lon)
     """
-    cart_x = cart_y = cart_z = []
+    x = 0
+    y = 0
+    z = 0
 
-    for lat,lon in coords:
-        X = cos(lat) * cos(lon)
-        Y = cos(lat) * sin(lon)
-        Z = sin(lat)
+    for lat, lon in geolocations:
+        lat = float(radians(lat))
+        lon = float(radians(lon))
+        x += cos(lat) * cos(lon)
+        y += cos(lat) * sin(lon)
+        z += sin(lat)
 
-        cart_x.append(X)
-        cart_y.append(Y)
-        cart_z.append(Z)
+    x = float(x / len(geolocations))
+    y = float(y / len(geolocations))
+    z = float(z / len(geolocations))
 
-    avg_x = sum(cart_x)/len(cart_x)
-    avg_y = sum(cart_y)/len(cart_y)
-    avg_z = sum(cart_z)/len(cart_z)
+    c_lat = degrees(atan2(z, sqrt(x * x + y * y)))
+    c_lon = degrees(atan2(y, x))
 
-    hyp = sqrt(avg_x * avg_x + avg_y * avg_y)
-    avg_lon = atan2(avg_y, avg_x)
-    avg_lat = atan2(avg_z, hyp)
-
-    return (avg_lat, avg_lon)
+    return (c_lat, c_lon)
 
 
 def mean_heading(headings):
@@ -139,6 +160,20 @@ def mean_heading(headings):
     vector_sum = sum(vectors)
     return degrees(cmath.phase(vector_sum))
 
+
+def distance(wp1, wp2):
+
+    lat1, lon1, lat2, lon2 = *wp1, *wp2
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+
+    dlon = lon2 - lon1
+    dlat = lat2 - lat1
+
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    r = 6371000  # Radius of earth in miles
+
+    return c*r
 
 def haversine(lat1, lon1, lat2, lon2):
     """
@@ -165,9 +200,9 @@ def get_bearing(lat1, lon1, lat2, lon2):
     :param a pair of lat,lon coordinates:
     :return: bearing in degrees
     """
-    waypoint_1 = geo.xyz(lat1, lon1)
-    waypoint_2 = geo.xyz(lat2, lon2)
-    true_north = geo.great_circle_angle(waypoint_2, waypoint_1, geo.geographic_northpole)
+    waypoint_1 = xyz(lat1, lon1)
+    waypoint_2 = xyz(lat2, lon2)
+    true_north = great_circle_angle(waypoint_2, waypoint_1, geographic_northpole)
     bearing = geomag.mag_heading(true_north, dlat=lat1, dlon=lon1)
 
     return bearing
@@ -203,7 +238,7 @@ def degrees_between(angle_1, angle_2):
 
 
 def scale(output):
-    if output >= 0:
+    if output <= 0:
         side = 'p'
     else:
         side = 's'

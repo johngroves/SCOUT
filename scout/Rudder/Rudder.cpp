@@ -6,7 +6,9 @@
 using namespace std;
 
 extern Boat db1;
-extern volatile double encoder;
+extern volatile int encoder;
+double encoderDeg = 0.0;
+bool turning = false;
 
 // i2C Address of Rudder Sensor
 int rudderAddr = 6;
@@ -18,17 +20,19 @@ int NEG2 = 47;
 
 
 float getCompass() {
-    return encoder;
+    return encoder * .15;
 }
 
 
-void turnOff() {
+void motorOff() {
 
     // High is off for this relay
     digitalWrite(POS1, HIGH);
     digitalWrite(NEG1, HIGH);
     digitalWrite(POS2, HIGH);
     digitalWrite(NEG2, HIGH);
+
+    turning = false;
 }
 
 void toPort() {
@@ -55,10 +59,10 @@ Rudder::Rudder() {
     pinMode(POS2, OUTPUT);
     pinMode(NEG2, OUTPUT);
 
-    turnOff();
+    motorOff();
 }
 
-rudderPosition Rudder::turnTo(float angle, char side) {
+void Rudder::turnTo(float angle, char side) {
 
     if (side == 'p') {
         angle = angle * -1.0;
@@ -75,21 +79,24 @@ rudderPosition Rudder::turnTo(float angle, char side) {
         angle = -40.0;
     }
 
+    rudderPosition currentPosition = this->getAngle();
 
-     rudderPosition currentPosition = this->getAngle();
-        if ( angle > currentPosition.angle ) {
-            toStarboard();
-            while (angle > currentPosition.angle) {
-                currentPosition = this->getAngle();
-            }
-        } else {
-            toPort();
-            while (angle < currentPosition.angle) {
-                currentPosition = this->getAngle();
-            }
-        }
-    turnOff();
+    if ( angle > currentPosition.angle ) {
+        toStarboard();
+        turning = true;
+    }
+
+    if (angle < currentPosition.angle) {
+        toPort();
+        turning = true;
+
+    }
+}
+
+rudderPosition Rudder::turnOff() {
+    motorOff();
     return this->getAngle();
+
 }
 
 rudderPosition Rudder::getAngle() {
@@ -99,9 +106,13 @@ rudderPosition Rudder::getAngle() {
     position.angle = rudderHeading;
 
     if (rudderHeading >= 0) {
-        position.direction = 'p';
-    } else {
         position.direction = 's';
+    } else {
+        position.direction = 'p';
     }
     return position;
+}
+
+bool Rudder::getStatus() {
+    return turning;
 }
